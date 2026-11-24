@@ -1,0 +1,39 @@
+services:
+  database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: paylink-database
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: "${DB_SA_PASSWORD:?Set DB_SA_PASSWORD in .env}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 25s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paylink-app
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: database
+      DB_PORT: 1433
+      DB_NAME: paylink
+      DB_USERNAME: sa
+      DB_PASSWORD: "${DB_SA_PASSWORD:?Set DB_SA_PASSWORD in .env}"
+    ports:
+      - "8080:8080"
+    depends_on:
+      database:
+        condition: service_healthy
+
+volumes:
+  sqlserver_data:
