@@ -1,0 +1,84 @@
+@startuml PayLink_Refund_Failed_Payment_Sequence_Phase1
+
+title PayLink - Release Held Funds After a Failed Payment
+ autonumber
+ skinparam shadowing false
+ skinparam sequenceMessageAlign center
+ skinparam responseMessageBelowArrow true
+
+participant "Payment Processing" as PP
+participant Payment
+participant Hold
+participant Wallet
+participant "Notification Service" as Notification
+actor Customer
+
+note over PP, Payment
+  This sequence is triggered internally only after the biller
+  failure is confirmed and Payment has entered Failed.
+  It releases the payment's Hold. The customer is notified;
+  this is not the optional FR-27 refund request for a Completed payment.
+end note
+
+PP -> Payment : getStatus()
+alt Payment status is not Failed
+  Payment --> PP : current status
+  note over PP, Payment
+    Stop. Do not release funds or change Payment status.
+    An Unknown payment must first be confirmed unsuccessful
+    and transition to Failed.
+  end note
+else Payment status is Failed
+  Payment --> PP : Failed
+  PP -> Payment : getAssociatedHold()
+  Payment --> PP : holdId
+  PP -> Wallet : releaseHeldFunds(holdId)
+  note right of Wallet
+    One atomic, idempotent operation:
+    1. Lock the Hold and verify its status.
+    2. If Active, post Debit Held + Credit Available.
+    3. Write one audit record for each ledger movement.
+    4. Mark the Hold Released.
+    All changes commit together or roll back together.
+  end note
+  Wallet -> Hold : checkAndLockStatus(holdId)
+  alt Hold Active; release succeeds
+    Hold --> Wallet : Active
+    Wallet -> Wallet : post release ledger entries
+    Wallet -> Hold : markReleased()
+    Hold --> Wallet : Released
+    Wallet --> PP : release successful
+    PP -> Payment : transition Failed -> Refunded
+    Payment --> PP : Refunded
+    PP -> Notification : notifyCustomer(funds released)
+    Notification --> Customer : failed payment; funds returned
+  else Hold already Released; matching release entries verified
+    Hold --> Wallet : Released
+    Wallet --> PP : prior release verified
+    note over PP, Wallet
+      Recovery after a retry / partial application restart:
+      do not post another movement. Verify that this Hold's
+      matching release ledger entries already exist.
+    end note
+    PP -> Payment : ensureStatus(Refunded)
+    Payment --> PP : Refunded
+    PP -> Notification : notifyCustomer(funds released)
+    Notification --> Customer : failed payment; funds returned
+  else Hold is Captured
+    Hold --> Wallet : Captured
+    Wallet --> PP : release rejected
+    note over PP, Wallet
+      Do not release funds or mark Refunded.
+      Raise an inconsistency for support investigation.
+    end note
+  else Hold is missing / invalid
+    Hold --> Wallet : unavailable or invalid state
+    Wallet --> PP : release unsuccessful
+    note over PP, Wallet
+      Do not make a financial movement and do not mark
+      Payment as Refunded. Payment remains Failed.
+      Raise an operational alert for investigation.
+    end note
+  end
+end
+@enduml

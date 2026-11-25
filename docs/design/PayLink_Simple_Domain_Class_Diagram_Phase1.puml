@@ -1,0 +1,450 @@
+@startuml PayLink_Simple_Domain_Class_Diagram_Phase1
+
+ title PayLink - Phase 1 Domain Class Diagram
+ left to right direction
+ skinparam classAttributeIconSize 0
+ skinparam linetype ortho
+ skinparam shadowing false
+ skinparam packageStyle rectangle
+ skinparam nodesep 35
+ skinparam ranksep 45
+ hide empty members
+
+' =========================
+' Enumerations
+' =========================
+
+enum UserRole {
+  Customer
+  Agent
+  Admin
+  SupportEmployee
+}
+enum VerificationLevel {
+  Basic
+  Verified
+}
+enum AccountStatus {
+  Active
+  Blocked
+}
+enum PaymentStatus {
+  Initiated
+  FundsHeld
+  SentToBiller
+  Completed
+  Failed
+  Unknown
+  Rejected
+  Refunded
+}
+enum HoldStatus {
+  Active
+  Captured
+  Released
+}
+enum EntryDirection {
+  Debit
+  Credit
+}
+enum WalletBucket {
+  Available
+  Held
+}
+enum LedgerSourceType {
+  Hold
+  WalletTopUp
+  Commission
+}
+enum FeeType {
+  Fixed
+  Percentage
+  Tiered
+}
+enum ServiceType {
+  Electricity
+  Water
+  MobileTopUp
+  Internet
+}
+enum InquiryStatus {
+  Successful
+  Failed
+}
+enum NotificationChannel {
+  SMS
+  Email
+  Push
+}
+enum NotificationStatus {
+  Pending
+  Sent
+  Undelivered
+}
+enum TopUpStatus {
+  Pending
+  Completed
+  Failed
+}
+enum TopUpSource {
+  SimulatedCard
+  AgentCash
+}
+enum CommissionStatus {
+  Pending
+  Credited
+}
+enum RefundStatus {
+  Requested
+  Approved
+  Rejected
+  Processed
+}
+enum IntegrationProtocol {
+  REST
+  SOAP
+  ASYNC_CALLBACK
+  BATCH
+}
+
+' =========================
+' Core account and wallet domain
+' =========================
+
+class User {
+  - userId : UUID
+  - fullName : String
+  - phone : String
+  - email : String
+  - passwordHash : String
+  - role : UserRole
+  - verificationLevel : VerificationLevel [0..1]
+  - accountStatus : AccountStatus
+  - blockedUntil : DateTime [0..1]
+  - createdAt : DateTime
+  - updatedAt : DateTime [0..1]
+}
+
+class Wallet {
+  - walletId : UUID
+  - currency : String
+  - status : String
+  - version : Integer
+  - availableBalance : Decimal {derived}
+  - heldBalance : Decimal {derived}
+  - createdAt : DateTime
+  - updatedAt : DateTime [0..1]
+}
+
+class LedgerEntry {
+  - entryId : UUID
+  - movementType : String
+  - amount : Decimal
+  - direction : EntryDirection
+  - bucket : WalletBucket
+  - sourceType : LedgerSourceType
+  - sourceId : UUID
+  - createdAt : DateTime
+}
+
+class WalletTopUp {
+  - topUpId : UUID
+  - amount : Decimal
+  - source : TopUpSource
+  - status : TopUpStatus
+  - externalReference : String [0..1]
+  - createdAt : DateTime
+  - updatedAt : DateTime [0..1]
+}
+
+class Commission {
+  - commissionId : UUID
+  - amount : Decimal
+  - status : CommissionStatus
+  - createdAt : DateTime
+  - updatedAt : DateTime [0..1]
+  - creditedAt : DateTime [0..1]
+}
+
+' =========================
+' Payment domain
+' =========================
+
+class BillInquiry {
+  - inquiryId : UUID
+  - billReference : String
+  - billAmount : Decimal [0..1]
+  - status : InquiryStatus
+  - createdAt : DateTime
+  - expiresAt : DateTime [0..1]
+}
+
+class Payment {
+  - paymentId : UUID
+  - paymentReference : String {unique PayLink reference}
+  - billerTransactionReference : String [0..1]
+  - billReference : String
+  - billAmount : Decimal
+  - feeAmount : Decimal
+  - totalAmount : Decimal {derived}
+  - idempotencyKey : String
+  - status : PaymentStatus
+  - createdAt : DateTime
+  - updatedAt : DateTime [0..1]
+}
+
+class Hold {
+  - holdId : UUID
+  - amount : Decimal
+  - status : HoldStatus
+  - createdAt : DateTime
+  - updatedAt : DateTime [0..1]
+  - releasedAt : DateTime [0..1]
+  - capturedAt : DateTime [0..1]
+}
+
+class Refund {
+  - refundId : UUID
+  - amount : Decimal
+  - reason : String
+  - status : RefundStatus
+  - requestedBy : UUID
+  - approvedBy : UUID [0..1]
+  - createdAt : DateTime
+  - approvedAt : DateTime [0..1]
+}
+
+' =========================
+' Biller catalogue and fees
+' =========================
+
+class Biller {
+  - billerId : UUID
+  - billerName : String
+  - billerCode : String
+  - integrationProtocol : IntegrationProtocol
+  - status : String
+  - createdAt : DateTime
+  - updatedAt : DateTime [0..1]
+}
+
+class Service {
+  - serviceId : UUID
+  - serviceName : String
+  - serviceType : ServiceType
+  - requiredInputFields : JSON
+  - minimumAmount : Decimal
+  - maximumAmount : Decimal
+  - inquirySupported : Boolean
+  - status : String
+  - createdAt : DateTime
+  - updatedAt : DateTime [0..1]
+}
+
+class FeePolicy {
+  - feePolicyId : UUID
+  - policyName : String
+  - feeType : FeeType
+  - fixedAmount : Decimal [0..1]
+  - percentageRate : Decimal [0..1]
+  - minimumFee : Decimal [0..1]
+  - maximumFee : Decimal [0..1]
+  - createdAt : DateTime
+}
+
+class FeePolicyTier {
+  - tierId : UUID
+  - lowerAmount : Decimal
+  - upperAmount : Decimal [0..1]
+  - feeAmount : Decimal
+}
+
+class Promotion {
+  - promotionId : UUID
+  - promotionCode : String
+  - promotionName : String
+  - startAt : DateTime
+  - endAt : DateTime
+  - status : String
+  - createdAt : DateTime
+  - updatedAt : DateTime [0..1]
+}
+
+' =========================
+' Reconciliation, notifications and audit
+' =========================
+
+class SettlementFile {
+  - settlementFileId : UUID
+  - fileDate : Date
+  - receivedAt : DateTime
+}
+
+class ReconciliationDifference {
+  - differenceId : UUID
+  - differenceType : String
+  - reviewed : Boolean
+  - createdAt : DateTime
+}
+
+class Notification {
+  - notificationId : UUID
+  - channel : NotificationChannel
+  - status : NotificationStatus
+  - message : String
+  - retryCount : Integer
+  - createdAt : DateTime
+  - updatedAt : DateTime [0..1]
+  - sentAt : DateTime [0..1]
+}
+
+class AuditLogEntry {
+  - auditId : UUID
+  - actorId : UUID [0..1]
+  - action : String
+  - entityType : String
+  - entityId : UUID
+  - reason : String [0..1]
+  - details : String [0..1]
+  - createdAt : DateTime
+  - ledgerEntryId : UUID [0..1]
+}
+
+' =========================
+' Relationships: account and money
+' =========================
+
+User "1" -- "0..1" Wallet : owns
+Wallet "1" -- "0..*" LedgerEntry : records
+Wallet "1" -- "0..*" WalletTopUp : receives
+Wallet "1" -- "0..*" Commission : credits
+User "1" -- "0..*" WalletTopUp : processes as agent
+User "1" -- "0..*" Commission : earns as agent
+
+' =========================
+' Relationships: payment processing
+' =========================
+
+User "1" -- "0..*" BillInquiry : requests
+Service "1" -- "0..*" BillInquiry : queried for
+User "1" -- "0..*" Payment : customer
+User "0..1" -- "0..*" Payment : processing agent
+Service "1" -- "0..*" Payment : used for
+BillInquiry "0..1" -- "0..1" Payment : may be used by
+Promotion "0..1" -- "0..*" Payment : applied to
+Payment "1" -- "0..1" Hold : reserves funds
+Payment "1" -- "0..1" Commission : generates
+Payment "1" -- "0..*" Refund : refund requests
+User "1" -- "0..*" Refund : requests
+User "0..1" -- "0..*" Refund : approves
+Hold "1" -- "0..*" LedgerEntry : source for movements
+WalletTopUp "1" -- "0..*" LedgerEntry : source for movements
+Commission "1" -- "0..*" LedgerEntry : source for movements
+
+' =========================
+' Relationships: billers, services and fees
+' =========================
+
+Biller "1" -- "0..*" Service : provides
+Biller "1" -- "0..*" Promotion : offers
+Service "0..*" -- "1" FeePolicy : uses
+FeePolicy "1" *-- "0..*" FeePolicyTier : contains
+
+' =========================
+' Relationships: operations and controls
+' =========================
+
+Biller "1" -- "0..*" SettlementFile : provides
+SettlementFile "1" *-- "0..*" ReconciliationDifference : contains
+Payment "0..1" -- "0..*" ReconciliationDifference : may be matched
+User "1" -- "0..*" Notification : receives
+Payment "0..1" -- "0..*" Notification : relates to
+User "0..1" -- "0..*" AuditLogEntry : performs
+LedgerEntry "1" -- "0..1" AuditLogEntry : financial audit record
+
+' =========================
+' Important domain rules
+' =========================
+
+note right of Wallet
+  availableBalance and heldBalance are derived
+  from immutable LedgerEntry records.
+  Never overwrite balances directly.
+  Amounts use exact Decimal values.
+
+  Only Customer and Agent users may own wallets.
+end note
+
+note right of Payment
+  One Customer and one Service; Agent is optional.
+  Unique idempotency scope: (customerId, idempotencyKey).
+  Duplicate requests return the original result.
+
+  paymentReference is PayLink's unique reference
+  sent to the biller and used for reconciliation.
+  billerTransactionReference is the biller's own
+  reference returned by the integration.
+
+  totalAmount = billAmount + feeAmount.
+  feeAmount is the final charged fee; during an
+  applicable promotion it is zero (not a second discount).
+  Single-payment limits: 5 EGP to 10,000 EGP.
+end note
+
+note right of Hold
+  At most one Hold per Payment.
+  Unknown keeps the Hold Active.
+  Completed captures it.
+  Failed releases it; only after release may the
+  payment transition to Refunded.
+end note
+
+note bottom of Refund
+  FR-27 is a separate customer-requested refund
+  of a Completed payment; support approves it.
+  The original Payment remains Completed because
+  Completed is a final lifecycle state.
+  This is distinct from releasing a Failed payment's Hold.
+  Refund approval / accounting treatment remains subject
+  to AMB-26 confirmation.
+end note
+
+note bottom of LedgerEntry
+  Exactly one source FK: Hold, WalletTopUp or Commission.
+  Payment movements use the Payment's Hold as source.
+  amount is positive; direction and bucket describe the
+  posting (HOLD_PLACE, HOLD_CAPTURE, HOLD_RELEASE,
+  TOPUP_CREDIT, COMMISSION_CREDIT, etc.).
+end note
+
+note bottom of AuditLogEntry
+  Every financial LedgerEntry must have exactly one audit
+  record written in the same database transaction.
+  ledgerEntryId is optional only for non-financial admin
+  actions; append-only records capture who, when, why.
+end note
+
+note bottom of FeePolicyTier
+  lowerAmount < upperAmount when upperAmount is set.
+  Tiers for one FeePolicy must not overlap.
+end note
+
+note bottom of Notification
+  Failed delivery is retried up to 3 times; after that
+  status is Undelivered. Payment completion does not
+  depend on notification-provider availability.
+end note
+
+note bottom of Service
+  requiredInputFields is JSON.
+  Service amount bounds supplement the global
+  5 EGP / 10,000 EGP single-payment limits.
+end note
+
+note bottom of Promotion
+  A Promotion belongs to one Biller and applies only
+  to an active Service under that Biller and within
+  startAt/endAt. The selected promotion sets feeAmount to 0.
+end note
+
+@enduml

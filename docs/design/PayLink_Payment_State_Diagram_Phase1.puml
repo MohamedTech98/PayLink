@@ -1,0 +1,52 @@
+@startuml PayLink_Payment_State_Diagram_Phase1
+
+title PayLink - Payment Lifecycle State Machine (Phase 1)
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam state {
+  BackgroundColor White
+  BorderColor #333333
+  FontColor #111111
+}
+
+[*] --> Initiated
+
+Initiated --> Rejected : Fraud check fails\nor funds insufficient
+Initiated --> FundsHeld : Fraud checks pass\nand wallet has enough funds
+FundsHeld --> SentToBiller : Payment request sent
+SentToBiller --> Completed : Biller confirms
+SentToBiller --> Failed : Biller refuses
+SentToBiller --> Unknown : No answer within 10 seconds\n(live biller)
+Unknown --> Completed : Biller later confirms\n(callback, retry or settlement file)
+Unknown --> Failed : Biller later refuses, or\nreconciliation confirms no payment
+Failed --> Refunded : Hold successfully released
+
+Completed --> [*]
+Rejected --> [*]
+Refunded --> [*]
+
+note right of Unknown
+  Funds remain held while the outcome is uncertain.
+  Re-query after 1, 5 and 15 minutes from entering Unknown.
+  After three unsuccessful re-queries, wait for reconciliation.
+  Never refund Unknown automatically.
+
+  TopUpNet's "accepted" response is not final; the payment
+  remains SentToBiller until the callback. A callback-wait
+  timeout is an open configurable policy (AMB-16).
+end note
+
+note bottom of Failed
+  The hold release must succeed before Refunded is entered.
+  This is an automatic release after confirmed biller failure,
+  not the separate FR-27 customer refund request for a
+  Completed payment. Completed remains a final state.
+end note
+
+note bottom of Completed
+  Completed, Rejected and Refunded are final states.
+  No Completed -> Refunded lifecycle transition is allowed.
+end note
+
+@enduml

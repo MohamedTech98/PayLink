@@ -1,0 +1,398 @@
+@startuml PayLink_Relational_Database_ERD_Phase1
+
+title PayLink - Relational Database ER Diagram (Phase 1)
+hide circle
+left to right direction
+skinparam linetype ortho
+skinparam shadowing false
+skinparam entity {
+  BackgroundColor White
+  BorderColor Black
+}
+
+' 1. USERS
+entity "users" as users {
+  * user_id : UUID <<PK>>
+  --
+  full_name : VARCHAR <<NN>>
+  phone : VARCHAR <<UQ, NN>>
+  email : VARCHAR <<UQ>>
+  password_hash : VARCHAR <<NN>>
+  role : UserRole <<NN>>
+  verification_level : VerificationLevel
+  account_status : AccountStatus <<NN>>
+  blocked_until : DATETIME
+  created_at : DATETIME <<NN>>
+  updated_at : DATETIME
+}
+
+' 2. WALLETS
+entity "wallets" as wallets {
+  * wallet_id : UUID <<PK>>
+  --
+  user_id : UUID <<FK, UQ, NN>>
+  currency : CHAR(3) <<NN>>
+  status : VARCHAR <<NN>>
+  version : INTEGER <<NN, DEFAULT 0>>
+  created_at : DATETIME <<NN>>
+  updated_at : DATETIME
+}
+users ||--o| wallets : owns
+
+' 3. BILLERS
+entity "billers" as billers {
+  * biller_id : UUID <<PK>>
+  --
+  biller_name : VARCHAR <<NN>>
+  biller_code : VARCHAR <<UQ, NN>>
+  integration_protocol : IntegrationProtocol <<NN>>
+  status : VARCHAR <<NN>>
+  created_at : DATETIME <<NN>>
+  updated_at : DATETIME
+}
+
+' 4. FEE POLICIES
+entity "fee_policies" as fee_policies {
+  * fee_policy_id : UUID <<PK>>
+  --
+  policy_name : VARCHAR <<NN>>
+  fee_type : FeeType <<NN>>
+  fixed_amount : NUMERIC(12,2)
+  percentage_rate : DECIMAL(7,4)
+  minimum_fee : NUMERIC(12,2)
+  maximum_fee : NUMERIC(12,2)
+  created_at : DATETIME <<NN>>
+}
+
+' 5. FEE POLICY TIERS
+entity "fee_policy_tiers" as fee_policy_tiers {
+  * tier_id : UUID <<PK>>
+  --
+  fee_policy_id : UUID <<FK, NN>>
+  lower_amount : NUMERIC(12,2) <<NN>>
+  upper_amount : NUMERIC(12,2)
+  fee_amount : NUMERIC(12,2) <<NN>>
+}
+fee_policies ||--o{ fee_policy_tiers : contains
+
+' 6. SERVICES
+entity "services" as services {
+  * service_id : UUID <<PK>>
+  --
+  biller_id : UUID <<FK, NN>>
+  fee_policy_id : UUID <<FK, NN>>
+  service_name : VARCHAR <<NN>>
+  service_type : ServiceType <<NN>>
+  required_input_fields : JSON <<NN>>
+  minimum_amount : NUMERIC(12,2) <<NN>>
+  maximum_amount : NUMERIC(12,2) <<NN>>
+  inquiry_supported : BOOLEAN <<NN>>
+  status : VARCHAR <<NN>>
+  created_at : DATETIME <<NN>>
+  updated_at : DATETIME
+}
+billers ||--o{ services : provides
+fee_policies ||--o{ services : applies to
+
+' 7. PROMOTIONS
+entity "promotions" as promotions {
+  * promotion_id : UUID <<PK>>
+  --
+  biller_id : UUID <<FK, NN>>
+  promotion_code : VARCHAR <<UQ, NN>>
+  promotion_name : VARCHAR <<NN>>
+  start_at : DATETIME <<NN>>
+  end_at : DATETIME <<NN>>
+  status : VARCHAR <<NN>>
+  created_at : DATETIME <<NN>>
+  updated_at : DATETIME
+}
+billers ||--o{ promotions : offers
+
+' 8. BILL INQUIRIES
+entity "bill_inquiries" as bill_inquiries {
+  * inquiry_id : UUID <<PK>>
+  --
+  customer_id : UUID <<FK, NN>>
+  service_id : UUID <<FK, NN>>
+  bill_reference : VARCHAR <<NN>>
+  bill_amount : NUMERIC(12,2)
+  status : InquiryStatus <<NN>>
+  created_at : DATETIME <<NN>>
+  expires_at : DATETIME
+}
+users ||--o{ bill_inquiries : requests
+services ||--o{ bill_inquiries : queried for
+
+' 9. PAYMENTS
+entity "payments" as payments {
+  * payment_id : UUID <<PK>>
+  --
+  payment_reference : VARCHAR <<UQ, NN>>
+  biller_transaction_reference : VARCHAR
+  customer_id : UUID <<FK, NN>>
+  agent_id : UUID <<FK>>
+  service_id : UUID <<FK, NN>>
+  inquiry_id : UUID <<FK, UQ>>
+  promotion_id : UUID <<FK>>
+  bill_reference : VARCHAR <<NN>>
+  bill_amount : NUMERIC(12,2) <<NN>>
+  fee_amount : NUMERIC(12,2) <<NN>>
+  total_amount : NUMERIC(12,2) <<NN>>
+  idempotency_key : VARCHAR <<NN>>
+  status : PaymentStatus <<NN>>
+  created_at : DATETIME <<NN>>
+  updated_at : DATETIME
+  --
+  UNIQUE(customer_id, idempotency_key)
+  CHECK(total_amount = bill_amount + fee_amount)
+}
+users ||--o{ payments : customer
+users |o--o{ payments : processing agent
+services ||--o{ payments : receives
+bill_inquiries |o--o| payments : may be used by
+promotions |o--o{ payments : applied to
+
+' 10. HOLDS
+entity "holds" as holds {
+  * hold_id : UUID <<PK>>
+  --
+  payment_id : UUID <<FK, UQ, NN>>
+  amount : NUMERIC(12,2) <<NN>>
+  status : HoldStatus <<NN>>
+  created_at : DATETIME <<NN>>
+  updated_at : DATETIME
+  released_at : DATETIME
+  captured_at : DATETIME
+}
+payments ||--o| holds : has
+
+' 11. WALLET TOP-UPS
+entity "wallet_topups" as wallet_topups {
+  * topup_id : UUID <<PK>>
+  --
+  wallet_id : UUID <<FK, NN>>
+  processed_by_agent_id : UUID <<FK>>
+  amount : NUMERIC(12,2) <<NN>>
+  source : TopUpSource <<NN>>
+  status : TopUpStatus <<NN>>
+  external_reference : VARCHAR <<UQ>>
+  created_at : DATETIME <<NN>>
+  updated_at : DATETIME
+}
+wallets ||--o{ wallet_topups : receives
+users |o--o{ wallet_topups : processed by
+
+' 12. COMMISSIONS
+entity "commissions" as commissions {
+  * commission_id : UUID <<PK>>
+  --
+  payment_id : UUID <<FK, UQ, NN>>
+  agent_id : UUID <<FK, NN>>
+  amount : NUMERIC(12,2) <<NN>>
+  status : CommissionStatus <<NN>>
+  created_at : DATETIME <<NN>>
+  updated_at : DATETIME
+  credited_at : DATETIME
+}
+payments ||--o| commissions : generates
+users ||--o{ commissions : earns
+
+' 13. LEDGER ENTRIES
+entity "ledger_entries" as ledger_entries {
+  * entry_id : UUID <<PK>>
+  --
+  wallet_id : UUID <<FK, NN>>
+  hold_id : UUID <<FK>>
+  topup_id : UUID <<FK>>
+  commission_id : UUID <<FK>>
+  movement_type : VARCHAR <<NN>>
+  amount : NUMERIC(12,2) <<NN>>
+  direction : EntryDirection <<NN>>
+  bucket : WalletBucket <<NN>>
+  created_at : DATETIME <<NN>>
+  --
+  CHECK(exactly one of hold_id, topup_id, commission_id is populated)
+}
+wallets ||--o{ ledger_entries : records
+holds |o--o{ ledger_entries : source for
+wallet_topups |o--o{ ledger_entries : source for
+commissions |o--o{ ledger_entries : source for
+
+' 14. SETTLEMENT FILES
+entity "settlement_files" as settlement_files {
+  * settlement_file_id : UUID <<PK>>
+  --
+  biller_id : UUID <<FK, NN>>
+  file_date : DATE <<NN>>
+  received_at : DATETIME <<NN>>
+}
+billers ||--o{ settlement_files : provides
+
+' 15. RECONCILIATION DIFFERENCES
+entity "reconciliation_differences" as reconciliation_differences {
+  * difference_id : UUID <<PK>>
+  --
+  settlement_file_id : UUID <<FK, NN>>
+  payment_id : UUID <<FK>>
+  difference_type : VARCHAR <<NN>>
+  reviewed : BOOLEAN <<NN, DEFAULT false>>
+  created_at : DATETIME <<NN>>
+}
+settlement_files ||--o{ reconciliation_differences : has
+payments |o--o{ reconciliation_differences : may match
+
+' 16. REFUNDS
+entity "refunds" as refunds {
+  * refund_id : UUID <<PK>>
+  --
+  payment_id : UUID <<FK, NN>>
+  requested_by : UUID <<FK, NN>>
+  approved_by : UUID <<FK>>
+  amount : NUMERIC(12,2) <<NN>>
+  reason : VARCHAR <<NN>>
+  status : RefundStatus <<NN>>
+  created_at : DATETIME <<NN>>
+  approved_at : DATETIME
+}
+payments ||--o{ refunds : has requests
+users ||--o{ refunds : requested by
+users |o--o{ refunds : approved by
+
+' 17. NOTIFICATIONS
+entity "notifications" as notifications {
+  * notification_id : UUID <<PK>>
+  --
+  user_id : UUID <<FK, NN>>
+  payment_id : UUID <<FK>>
+  channel : NotificationChannel <<NN>>
+  status : NotificationStatus <<NN>>
+  message : TEXT <<NN>>
+  retry_count : INTEGER <<NN, DEFAULT 0>>
+  created_at : DATETIME <<NN>>
+  updated_at : DATETIME
+  sent_at : DATETIME
+}
+users ||--o{ notifications : receives
+payments |o--o{ notifications : relates to
+
+' 18. AUDIT LOG ENTRIES
+entity "audit_log_entries" as audit_log_entries {
+  * audit_id : UUID <<PK>>
+  --
+  ledger_entry_id : UUID <<FK, UQ>>
+  actor_id : UUID <<FK>>
+  action : VARCHAR <<NN>>
+  entity_type : VARCHAR <<NN>>
+  entity_id : UUID <<NN>>
+  reason : VARCHAR
+  details : TEXT
+  created_at : DATETIME <<NN>>
+}
+ledger_entries ||--o| audit_log_entries : audited by
+users |o--o{ audit_log_entries : performs
+
+' =========================
+' Cross-table constraints and business rules
+' =========================
+note right of users
+  Roles: Customer, Agent, Admin, SupportEmployee.
+  Only Customers have verification_level.
+  Only Customers and Agents may own wallets.
+end note
+
+note right of payments
+  payment_reference is the unique PayLink reference
+  sent to the biller and used for settlement matching.
+  biller_transaction_reference stores the biller's own
+  reference when one is returned; it is not the bill reference.
+
+  total_amount = bill_amount + fee_amount.
+  fee_amount is the final fee after policy/promotion;
+  an applicable promotion sets fee_amount to zero.
+  No separate discount_amount is stored.
+
+  UNIQUE(customer_id, idempotency_key).
+  Agent is optional and must have role Agent.
+  If inquiry_id is set, customer_id and service_id
+  must match the referenced BillInquiry.
+end note
+
+note right of bill_inquiries
+  Only Customer users can request inquiries.
+  bill_amount is required for Successful inquiries.
+end note
+
+note right of services
+  required_input_fields stores the biller-specific
+  input schema (JSON/JSONB).
+  Service amount bounds supplement the global
+  single-payment minimum and maximum.
+end note
+
+note bottom of promotions
+  A Promotion applies only when its Biller matches
+  the Biller of the Payment's Service and it is active
+  within start_at/end_at.
+end note
+
+note bottom of wallet_topups
+  AgentCash requires processed_by_agent_id (Agent role).
+  SimulatedCard requires processed_by_agent_id = NULL.
+  A Completed top-up creates one Available credit.
+end note
+
+note bottom of commissions
+  Commission = 40% of the final payment fee_amount when
+  the payment completes with an assigned Agent.
+  Credited commission creates one Available credit in
+  that Agent's Wallet.
+end note
+
+note bottom of ledger_entries
+  Exactly one source FK must be populated:
+  hold_id, topup_id or commission_id.
+  Hold is the source for payment reserve/capture/release
+  entries. amount is positive NUMERIC; direction and bucket
+  describe the posting. Balances are computed from entries.
+end note
+
+note bottom of audit_log_entries
+  Every financial LedgerEntry must have exactly one
+  AuditLogEntry written in the same DB transaction.
+  ledger_entry_id is nullable only for non-financial
+  administrative/security actions; append-only records.
+  Enforce the mandatory financial audit pairing in the
+  application transaction or a deferred constraint/trigger.
+end note
+
+note bottom of fee_policy_tiers
+  lower_amount < upper_amount when upper_amount is set.
+  Tiers for a FeePolicy must not overlap.
+end note
+
+note bottom of holds
+  At most one Hold per Payment.
+  Active during Unknown; Captured on Completed;
+  Released on Failed before Payment becomes Refunded.
+end note
+
+note bottom of refunds
+  FR-27 is a separate request to refund a Completed payment.
+  The original Payment remains Completed (final state).
+  Support approval is recorded in approved_by/status.
+  This is not the Failed -> Refunded hold-release transition.
+  Accounting treatment remains subject to AMB-26 confirmation.
+end note
+
+note bottom of notifications
+  Status: Pending, Sent, Undelivered.
+  Apply the configured retry policy; failures do not
+  roll back a completed payment.
+end note
+
+note bottom of billers
+  IntegrationProtocol: REST, SOAP, ASYNC_CALLBACK, BATCH.
+end note
+
+@enduml

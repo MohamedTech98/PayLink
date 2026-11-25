@@ -1,0 +1,151 @@
+@startuml PayLink_Pay_Bill_Sequence_Phase1
+
+title PayLink - Pay a Bill
+ autonumber
+ skinparam shadowing false
+ skinparam sequenceMessageAlign center
+ skinparam responseMessageBelowArrow true
+
+actor Customer
+participant "Payment Processing" as PP
+participant Wallet
+participant "Biller Adapter" as Adapter
+participant "External Biller" as Biller
+participant "Notification Service" as Notification
+
+== 1. Inquiry and quote ==
+Customer -> PP : requestBillInquiry(serviceId, billReference)
+PP -> Adapter : inquireBill(billReference)
+Adapter -> Biller : inquiry request
+Biller --> Adapter : billAmount
+Adapter --> PP : billAmount
+PP -> PP : fee = calculateFee()\ntotal = billAmount + fee
+PP --> Customer : show bill amount, fee and total
+Customer -> PP : confirmPayment(idempotencyKey)
+
+== 2. Create payment (idempotent) ==
+PP -> PP : create Payment(status = Initiated)\nUNIQUE(customerId, idempotencyKey)
+alt duplicate idempotency key
+  PP --> Customer : return original payment result\n(no second charge)
+else new payment
+
+  == 3. Fraud checks before any wallet movement ==
+  PP -> PP : check blocked account, daily limit\nand velocity rule
+  alt fraud / limit check fails
+    PP -> PP : status = Rejected
+    PP -> Notification : notify(rejection reason)
+    PP --> Customer : rejected with clear reason
+  else checks pass
+    PP -> Wallet : holdFunds(total)
+    note right of Wallet
+      One atomic, concurrency-safe operation:
+      lock wallet, verify available funds,
+      create Hold and the matching ledger postings.
+      The balance is never updated directly.
+    end note
+
+    alt insufficient available funds
+      Wallet --> PP : insufficient funds
+      PP -> PP : status = Rejected
+      PP -> Notification : notify(insufficient funds)
+      PP --> Customer : rejected with clear reason
+    else funds held
+      Wallet --> PP : Hold created
+      PP -> PP : status = FundsHeld
+
+      == 4. Biller outcome ==
+      alt synchronous live biller (ElectroCo / AquaCo)
+        PP -> Adapter : sendPayment(billAmount, paymentReference)
+        Adapter -> Biller : payment request
+        PP -> PP : status = SentToBiller
+
+        alt biller confirms immediately
+          Biller --> Adapter : success(billerTransactionReference)
+          Adapter --> PP : success
+          PP -> Wallet : captureHold(total)
+          opt payment made by an Agent
+            PP -> Wallet : creditCommission(40% of final fee)
+          end
+          PP -> PP : status = Completed
+          PP -> Notification : notify(success)
+          PP --> Customer : payment completed
+
+        else biller refuses
+          Biller --> Adapter : refusal / mapped error
+          Adapter --> PP : failed(reason)
+          PP -> PP : status = Failed
+          ref over PP, Wallet : Release the Hold\n(Failed -> Refunded)
+          PP -> Notification : notify(failure reason)
+          PP --> Customer : payment failed; funds released
+
+        else no response within 10 seconds
+          Adapter --> PP : timeout
+          PP -> PP : status = Unknown
+          note right of PP
+            Keep the Hold Active.
+            Re-query after 1, 5 and 15 minutes,
+            then wait for reconciliation.
+            Never refund while the result is uncertain.
+          end note
+          PP -> Notification : notify("being processed")
+          PP --> Customer : payment is being processed
+        end
+
+      else asynchronous biller (TopUpNet)
+        PP -> Adapter : sendPayment(billAmount, paymentReference)
+        Adapter -> Biller : payment request
+        PP -> PP : status = SentToBiller
+        Biller --> Adapter : accepted (not final)
+        Adapter --> PP : accepted
+        PP -> PP : remain SentToBiller; await callback
+
+        alt valid callback received within configured wait
+          Biller -> Adapter : callback(success or failed)
+          Adapter -> PP : normalized final result
+          alt callback confirms payment
+            PP -> Wallet : captureHold(total)
+            opt payment made by an Agent
+              PP -> Wallet : creditCommission(40% of final fee)
+            end
+            PP -> PP : status = Completed
+            PP -> Notification : notify(success)
+            PP --> Customer : payment completed
+          else callback refuses payment
+            PP -> PP : status = Failed
+            ref over PP, Wallet : Release the Hold\n(Failed -> Refunded)
+            PP -> Notification : notify(failure reason)
+            PP --> Customer : payment failed; funds released
+          end
+        else configured callback-wait policy expires (AMB-16)
+          PP -> PP : status = Unknown
+          note right of PP
+            Keep the Hold Active while the outcome is uncertain.
+            Re-query / reconcile according to the configured policy.
+            The brief does not specify this async wait duration.
+          end note
+          PP -> Notification : notify("being processed")
+          PP --> Customer : payment is being processed
+        end
+
+        opt late callback after transition to Unknown
+          Biller -> Adapter : callback(success or failed)
+          Adapter -> PP : normalized final result
+          PP -> PP : resolve Unknown -> Completed or Failed
+          note right of PP
+            If the late result confirms failure, release the Hold
+            before the Failed -> Refunded transition.
+            Ignore and audit callbacks after a final outcome.
+          end note
+        end
+      end
+    end
+  end
+end
+
+note over PP, Biller
+  A late result for an Unknown payment is handled by the same
+  confirmation / refusal rules. A callback received after a
+  final result is idempotently ignored. The async callback wait
+  policy is configurable and remains an open assumption (AMB-16).
+end note
+@enduml
