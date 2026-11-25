@@ -1,0 +1,96 @@
+@startuml PayLink_Use_Case_Diagram_Phase1
+
+title PayLink - Phase 1 Use-Case Diagram
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor White
+  BorderColor #333333
+}
+
+actor Customer
+actor Agent
+actor Administrator as Admin
+actor "Support Employee" as Support
+actor "External Biller" as Biller
+actor "Notification Provider" as Notify
+actor "Simulated Card Service" as Card
+
+rectangle "PayLink Backend" {
+  usecase "Register account" as UC_Register
+  usecase "Upgrade verification" as UC_Verify
+  usecase "View wallet balance\nand transaction history" as UC_ViewWallet
+  usecase "Top up wallet" as UC_TopUp
+  usecase "Browse billers, services\nand required input fields" as UC_Browse
+  usecase "Run bill inquiry\nand view quote" as UC_Inquiry
+  usecase "Pay a bill" as UC_Pay
+  usecase "Pay on behalf\nof a customer" as UC_AgentPay
+  usecase "Calculate service fee\nand promotion" as UC_Fee
+  usecase "Run fraud and limit checks" as UC_Fraud
+  usecase "Place wallet hold" as UC_Hold
+  usecase "Send payment to biller" as UC_BillerPay
+  usecase "Receive asynchronous\nbiller callback" as UC_Callback
+  usecase "Send payment notification" as UC_Notify
+  usecase "View agent commission" as UC_Commission
+  usecase "Search payment and\nview full history" as UC_Search
+  usecase "Block / unblock account" as UC_Block
+  usecase "Request refund for a\ncompleted payment" as UC_RefundRequest
+  usecase "Approve / reject refund" as UC_RefundApprove
+  usecase "Manage billers and services" as UC_ManageCatalog
+  usecase "Manage fee and limit\nconfiguration" as UC_Config
+  usecase "View daily totals" as UC_Totals
+  usecase "Review reconciliation report" as UC_Recon
+  usecase "Record audit log" as UC_Audit
+}
+
+Customer -- UC_Register
+Customer -- UC_ViewWallet
+Customer -- UC_TopUp
+Customer -- UC_Browse
+Customer -- UC_Inquiry
+Customer -- UC_Pay
+Customer -- UC_RefundRequest
+
+Agent -- UC_TopUp
+Agent -- UC_AgentPay
+Agent -- UC_Commission
+Agent -- UC_ViewWallet
+
+Admin -- UC_Verify
+Admin -- UC_ManageCatalog
+Admin -- UC_Config
+Admin -- UC_Totals
+
+Support -- UC_Search
+Support -- UC_Block
+Support -- UC_RefundApprove
+Support -- UC_Recon
+
+Biller -- UC_Inquiry
+Biller -- UC_BillerPay
+Biller -- UC_Callback
+Notify -- UC_Notify
+Card -- UC_TopUp
+
+UC_Pay ..> UC_Fee : <<include>>
+UC_Pay ..> UC_Fraud : <<include>>
+UC_Pay ..> UC_Hold : <<include>>
+UC_Pay ..> UC_BillerPay : <<include>>
+UC_Pay ..> UC_Notify : <<include>>
+UC_AgentPay ..> UC_Pay : <<include>>
+UC_BillerPay ..> UC_Callback : <<extend>>
+UC_TopUp ..> UC_Audit : <<include>>
+UC_Pay ..> UC_Audit : <<include>>
+UC_RefundApprove ..> UC_Audit : <<include>>
+UC_ManageCatalog ..> UC_Audit : <<include>>
+UC_Config ..> UC_Audit : <<include>>
+
+note bottom of UC_RefundRequest
+  FR-27 is optional (Could). A completed Payment
+  remains Completed because it is a final state;
+  the refund is tracked as a separate request.
+  Approval/accounting treatment is AMB-26.
+end note
+
+@enduml
