@@ -6,7 +6,7 @@
 | **Phase** | Phase 1 - Requirements, design, DevOps foundation (due Wednesday 25 November 2026) |
 | **Document** | Requirements Pack (`docs/requirements.md`, `docs/requirements.pdf`) |
 | **Scope of this document** | Problem summary, stakeholders, business rules, functional requirements and user stories, non-functional requirements, ambiguities and decisions |
-| **Version / status** | 1.1 - Draft for team review |
+| **Version / status** | 1.5 - Draft for team review |
 | **Date** | 23 November 2026 |
 | **Prepared by** | Person 2 (Requirements) - team and author names to be completed before submission |
 | **Source of truth** | *PayLink Year Work Project - Student Brief* (referred to below as "the brief") |
@@ -33,7 +33,7 @@ This document is the requirements pack for Phase 1 of the PayLink project. It tu
 ### 1.2 Source of truth and rules for this document
 
 - The brief is the only source of official requirements. Functional requirements FR-1 to FR-28, the priorities (Must, Should, Could), the business rules (section 2.6 of the brief), the payment life cycle (section 2.5), the eight hard cases (section 2.7) and the six non-functional targets (section 3.3) are reproduced **without change**.
-- Where the brief is silent or unclear, this document does **not** present a guess as an official requirement. Each such point is recorded in [section 9](#9-ambiguities-assumptions-and-decisions) with a *proposed decision*, which is a **working assumption** until the instructor or team confirms it. Acceptance criteria that depend on an assumption cite its ID (for example "see AMB-02").
+- Where the brief is silent or unclear, this document does **not** present a guess as an official requirement. Each such point is recorded in [section 9](#9-ambiguities-assumptions-and-decisions) with a **decision** and the **reason** for it. The decisions were taken by the AI assistant (Claude) at the request of Person 2 as the best-fit choices for the project; they are not official requirements of the brief. Acceptance criteria that depend on a decision cite its ID (for example "see AMB-02").
 - The document was prepared with the help of an AI assistant. The team must review it, and the AI interactions must be recorded honestly in `docs/prompt-log.md`.
 
 ### 1.3 Conventions
@@ -286,7 +286,7 @@ The brief defines eight modules (six required, two marked "extra") but does not 
 
 ## 6. User Stories and Acceptance Criteria
 
-Each user story implements exactly one functional requirement, keeps the priority of the brief, and has acceptance criteria in Given / When / Then form. Amounts in examples use the business rules of section 4. Where an example depends on a working assumption, the assumption is cited (see [section 9](#9-ambiguities-assumptions-and-decisions)).
+Each user story implements exactly one functional requirement, keeps the priority of the brief, and has acceptance criteria in Given / When / Then form. Amounts in examples use the business rules of section 4. Where an example depends on a decision taken for an unclear point, the decision is cited (see [section 9](#9-ambiguities-assumptions-and-decisions)).
 
 ### 6.1 Accounts and Wallet
 
@@ -543,7 +543,7 @@ Each user story implements exactly one functional requirement, keeps the priorit
 | Priority | Must |
 | Module (proposed) | Payment Processing |
 | Brief requirement (verbatim) | A customer can run a bill inquiry and see the amount, fee and total before paying |
-| Related items | BR-04 to BR-07; AMB-10, AMB-19 |
+| Related items | BR-04 to BR-07; AMB-10, AMB-19, AMB-33 |
 
 **Story:** As a customer, I want to run a bill inquiry and see the bill amount, the service fee and the total before I pay, so that I can confirm the exact cost before committing any money.
 
@@ -577,6 +577,10 @@ Each user story implements exactly one functional requirement, keeps the priorit
   - **Given** TopUpNet with a valid phone number and a customer-chosen amount of 100.00 EGP
   - **When** the customer requests the fee and total preview
   - **Then** the customer sees an amount of 100.00 EGP, a fee of 1.50 EGP and a total of 101.50 EGP (see AMB-10).
+- **AC-8.8**
+  - **Given** a customer who saw a total of 352.50 EGP in an inquiry, and an admin then changed the electricity fee from 2.50 EGP to 3.00 EGP
+  - **When** the customer submits the payment with `expected_total` 352.50
+  - **Then** the request is refused with `QUOTE_CHANGED` (409), nothing is held and no payment is created (see AMB-33).
 
 #### US-09 Pay a bill from the wallet (FR-9, Must)
 
@@ -585,7 +589,7 @@ Each user story implements exactly one functional requirement, keeps the priorit
 | Priority | Must |
 | Module (proposed) | Payment Processing |
 | Brief requirement (verbatim) | A customer can pay a bill from the wallet |
-| Related items | BR-03, BR-17 to BR-19; HC-1, HC-4 |
+| Related items | BR-03, BR-17 to BR-19; HC-1, HC-4; AMB-10, AMB-33 |
 
 **Story:** As a customer, I want to pay a bill from my wallet, so that I do not have to queue at the utility company's office.
 
@@ -619,6 +623,10 @@ Each user story implements exactly one functional requirement, keeps the priorit
   - **Given** an unauthenticated request
   - **When** a payment is submitted
   - **Then** the request is refused and nothing is created (see AMB-03).
+- **AC-9.8**
+  - **Given** a water bill whose inquiry returned 350.00 EGP
+  - **When** the customer submits a payment for 200.00 EGP (a partial payment)
+  - **Then** the request is refused with `AMOUNT_MISMATCH` (422) and no payment is created (see AMB-10).
 
 #### US-10 Idempotent payment requests (FR-10, Must)
 
@@ -833,6 +841,10 @@ Each user story implements exactly one functional requirement, keeps the priorit
   - **Given** a payment in Unknown
   - **When** a TopUpNet callback arrives
   - **Then** the payment is resolved according to the callback (Completed or Failed) as allowed by the life cycle.
+- **AC-14.7**
+  - **Given** a TopUpNet payment that was answered "accepted" and has received no callback
+  - **When** the 30-minute callback deadline passes
+  - **Then** the payment becomes Unknown, its funds stay held and the re-query schedule starts (see AMB-16).
 
 ### 6.4 Biller Integration
 
@@ -859,7 +871,7 @@ Each user story implements exactly one functional requirement, keeps the priorit
   - **Then** the payment is processed within the 10-second timeout and becomes Completed, and the customer sees the same fields and messages as for any other biller.
 - **AC-15.3**
   - **Given** AquaCo
-  - **When** it refuses a payment with an error code, for example because the payment is above the bill amount (HC-3)
+  - **When** it refuses a payment with an error code, for example because the bill changed after the inquiry or was already paid (HC-3)
   - **Then** the payment becomes Failed, the hold is released, and the customer receives an SMS with a clear reason (see US-22, AMB-10, AMB-19).
 - **AC-15.4**
   - **Given** TopUpNet (REST, JSON, asynchronous)
@@ -1030,7 +1042,11 @@ Each user story implements exactly one functional requirement, keeps the priorit
 - **AC-18.8**
   - **Given** a payment that fails more than one rule
   - **When** it is evaluated
-  - **Then** the reason of the first failing rule is returned, in the order single-payment minimum and maximum, daily limit, velocity, blocked account (see AMB-32).
+  - **Then** the reason of the first failing rule is returned, in the order amount range, blocked account, daily limit, velocity (see AMB-32).
+- **AC-18.9**
+  - **Given** a Basic customer who paid 4,800 EGP at 23:59 Cairo time
+  - **When** the customer pays 300 EGP at 00:01 Cairo time the next day
+  - **Then** the payment passes the daily-limit check, because the daily total restarted at midnight (see AMB-01).
 
 #### US-19 Velocity rule (FR-19, Should)
 
@@ -1151,6 +1167,10 @@ Each user story implements exactly one functional requirement, keeps the priorit
   - **Given** a block or unblock request without a reason
   - **When** it is submitted
   - **Then** the request is rejected and the account state is unchanged.
+- **AC-21.8**
+  - **Given** a blocked account
+  - **When** its owner views the wallet or tops up
+  - **Then** the wallet is shown and the top-up is accepted, because a block stops only new payments (see AMB-09).
 
 ### 6.8 Notifications
 
@@ -1345,6 +1365,10 @@ Each user story implements exactly one functional requirement, keeps the priorit
   - **Given** a report
   - **When** it is produced
   - **Then** it lists totals (matched, flagged, resolved) and each difference with payment reference, PayLink state, file entry and type of difference.
+- **AC-26.8**
+  - **Given** a payment that is still Unknown after the 3 re-queries and no settlement file is available for its biller and day
+  - **When** the reconciliation report is produced
+  - **Then** the payment is listed as unresolved with its reference, biller, amount and age, its funds stay held and it is not refunded (see AMB-18).
 
 #### US-27 Refund of a completed payment (FR-27, Could)
 
@@ -1431,7 +1455,7 @@ The brief (section 3.3) names six expected quality targets. The targets below ar
 | NFR-5 | Auditability | 100% of money movements have an audit record with who, when and why | Must |
 | NFR-6 | Testability | At least 70% line coverage on domain logic, measured in CI | Must |
 
-The brief does not assign priorities to non-functional requirements. They are marked Must here because section 3.3 lists them as expected and the final grading criteria depend on them; this is recorded as an assumption in [section 9](#9-ambiguities-assumptions-and-decisions) (AMB-34). AMB-30 and AMB-31 give the details of how two of the targets are measured.
+The brief does not assign priorities to non-functional requirements. They are marked Must here because section 3.3 lists them as expected and the final grading criteria depend on them; this is recorded as a decision in [section 9](#9-ambiguities-assumptions-and-decisions) (AMB-34). AMB-30 and AMB-31 give the details of how two of the targets are measured.
 
 ### 7.1 NFR-1 Correctness
 
@@ -1506,9 +1530,10 @@ Each hard case of section 2.7 of the brief becomes at least one automated test. 
 
 ### 9.1 How to read this section
 
-- The brief is the source of truth. This section lists points where it is **silent, unclear or open to more than one reading**. They were identified while analysing the brief with an AI assistant and checked against the brief's text.
-- The column **Proposed decision** is a **working assumption**, not an official requirement. Until the instructor or team confirms a decision, its status stays **Open (proposed)**. If a decision changes, the affected acceptance criteria, the diagrams and the tests must be updated together.
-- The decisions were chosen to be the simplest reading consistent with the brief and none of them changes a number, priority or life-cycle transition of the brief. Items of type **Derived** follow directly from the brief's wording but are not stated in it.
+- The brief is the source of truth. This section lists the 35 points where it is **silent, unclear or open to more than one reading**. They were identified while analysing the brief with an AI assistant and checked against the brief's text.
+- Each point has a **decision record** with: the ambiguity and why it matters, the **decision**, **exactly how the program handles it** (the rules, the data, the endpoints and the codes), the reason, the modules and requirements it affects, the acceptance criteria or tests that verify it, and the configuration it uses.
+- **The decisions were taken by the AI assistant (Claude) at the request of Person 2**, as the best choice for each point: the simplest reading that matches the brief, can be tested and keeps the system consistent. They are the decisions used in the user stories, the diagrams and the tests. **None of them changes a number, a priority or a life-cycle transition of the brief.**
+- A decision is not an official requirement of the brief. If the team or the instructor decides differently, change the decision record and every acceptance criterion, diagram and test that cites its ID.
 
 ### 9.2 Points confirmed by the brief (no assumption needed)
 
@@ -1523,92 +1548,561 @@ Each hard case of section 2.7 of the brief becomes at least one automated test. 
 | NetCo is optional; ElectroCo, AquaCo and TopUpNet are required. | FR-15; section 2.4 |
 | Business-rule values are fixed and kept in configuration. | Section 2.6 |
 
-### 9.3 Ambiguity register
+### 9.3 Decision summary
 
-Type: **Gap** = not specified in the brief; **Interpretation** = the text can be read in more than one way; **Derived** = follows from the brief but is not stated.
+| ID | Topic | Decision | Module | Requirements | Verified by |
+|---|---|---|---|---|---|
+| AMB-01 | Daily limit window | The daily limit is counted per calendar day in Egypt time (Africa/Cairo) and resets at 00:00 Cairo time. | Fraud Checks | FR-18, FR-26, FR-28 | AC-18.3, AC-18.4, AC-18.5, AC-18.9 |
+| AMB-02 | Basis of the limits | All limits apply to the bill amount (without the PayLink fee). The minimum and maximum are inclusive. | Fraud Checks | FR-9, FR-18 | AC-18.1a to AC-18.6 |
+| AMB-03 | Registration, login and roles | Users register with a unique mobile number and a password and log in for a token. There are four roles: customer, agent, admin and support. | Accounts and Wallet | FR-1, FR-6, FR-20, FR-21 | AC-1.1 to AC-1.4, AC-2.4, AC-6.5, AC-9.7, AC-20.5 |
+| AMB-04 | Verification upgrade | An admin upgrades a customer from Basic to Verified. No downgrade is built. | Accounts and Wallet | FR-2 | AC-2.1 to AC-2.5 |
+| AMB-05 | Wallet creation and top-up | Every customer and agent gets one EGP wallet at registration. A top-up credits only the customer's wallet. | Accounts and Wallet | FR-1, FR-4 | AC-1.1, AC-4.1 to AC-4.5 |
+| AMB-06 | Agent payments | The customer's wallet is charged and the customer's limits apply. The agent only earns the commission. | Payment Processing | FR-17 | AC-17.1 to AC-17.7 |
+| AMB-07 | Idempotency key | The key is required on every payment request, is unique per account, and is kept for 24 hours. The same key with different data is rejected. | Payment Processing | FR-10 | AC-10.1 to AC-10.7 |
+| AMB-08 | Velocity rule | A sliding 60-second window counts payment attempts. The 6th attempt is rejected and the account is blocked for 10 minutes. | Fraud Checks | FR-19 | AC-19.1 to AC-19.7 |
+| AMB-09 | Account blocks | A block stops new payments only. The customer can still log in, view the wallet and top up. Payments already in progress finish normally. | Fraud Checks, Accounts and Wallet | FR-19, FR-21 | AC-19.4, AC-19.5, AC-21.1 to AC-21.8 |
+| AMB-10 | Payment amount and partial payments | No partial payments. A bill payment must equal the amount returned by the inquiry. Only a mobile top-up has a customer-chosen amount. | Payment Processing | FR-8, FR-9, FR-15 | AC-8.7, AC-9.8, AC-15.3 |
+| AMB-11 | Notifications for Rejected payments | Rejected payments are answered in the API response only. SMS and push are sent for Completed and Failed. | Notifications | FR-22 | AC-22.1 to AC-22.4 |
+| AMB-32 | Order of the fraud checks | The checks run as a chain in this order: amount range, blocked account, daily limit, velocity. The first failing check decides the reason. | Fraud Checks | FR-18, FR-19, FR-21 | AC-18.8 |
+| AMB-12 | Rounding of money | Money has 2 decimals and is rounded half up. The fee is rounded first, then the 1.00 EGP minimum applies. | Fees and Commissions | FR-16, FR-17 | AC-16.2a, AC-16.2b, AC-16.3, AC-17.2 |
+| AMB-13 | Internet fee tier boundary | An amount up to and including 200.00 EGP pays 2.00 EGP; an amount above 200.00 EGP pays 4.00 EGP. | Fees and Commissions | FR-16 | AC-16.4a, AC-16.4b |
+| AMB-14 | Promotion period | One promotion at a time, for one biller, with inclusive Cairo dates. The fee is 0.00 EGP and so is the commission. | Fees and Commissions | FR-16, FR-17 | AC-8.2, AC-16.5, AC-16.6, AC-17.4 |
+| AMB-15 | Editable configuration | Fees, limits, promotions, velocity, timeouts and retry settings are stored in a database table and are editable by an admin. A change affects only payments initiated afterwards. | Fees and Commissions | FR-24 | AC-18.7, AC-24.1 to AC-24.6 |
+| AMB-33 | Validity of the inquiry total | The customer is never charged a different total than the one shown. If the total has changed, the payment is refused and the customer must run the inquiry again. | Payment Processing, Fees and Commissions | FR-8, FR-9, FR-24 | AC-8.8, AC-24.2 |
+| AMB-16 | TopUpNet callback waiting time | A TopUpNet payment waits 30 minutes for its callback. After that it becomes Unknown. | Biller Integration | FR-13, FR-14 | AC-14.1, AC-14.2, AC-14.7, AC-15.4 |
+| AMB-17 | Re-query schedule | The times are counted from the moment the payment became Unknown. Each mock biller offers a payment-status query. | Biller Integration, Payment Processing | FR-13 | AC-13.2 to AC-13.7 |
+| AMB-18 | Unknown payments that stay unresolved | The payment stays Unknown with its funds held and is shown to support as unresolved. It is never refunded automatically. | Reconciliation | FR-13, FR-26 | AC-13.5, AC-26.8 |
+| AMB-19 | Inquiry timeout and biller error codes | Inquiries use the same 10-second timeout and create nothing when they fail. Each adapter maps biller error codes to PayLink reason codes. | Biller Integration | FR-8, FR-15, FR-22 | AC-8.3, AC-8.4, AC-15.3, AC-15.8, AC-22.2 |
+| AMB-20 | NetCo and disabled billers | NetCo is not built. Disabling a biller blocks new payments only and never stops payments in progress. | Biller Catalog, Biller Integration | FR-6, FR-15 | AC-6.3, AC-8.6, AC-9.6, AC-15.7 |
+| AMB-21 | Notification retries | One first attempt plus 3 retries (4 attempts in total), then the message is marked undelivered. | Notifications | FR-23 | AC-23.1 to AC-23.4 |
+| AMB-22 | Notification channels | SMS, push and email share one retry rule. SMS and push are sent for the FR-22 events; email is supported but not used. | Notifications | FR-22, FR-23 | AC-22.1, AC-22.2, AC-23.5 |
+| AMB-23 | Message templates | Templates are stored in the database per event, channel and language, in English first. | Notifications | FR-22 | AC-22.1, AC-22.2, AC-22.7 |
+| AMB-24 | Settlement file | Each mock biller writes one CSV file per day. Reconciliation reads it at 01:00 Cairo time and matches by payment reference. | Reconciliation | FR-26 | AC-26.1 |
+| AMB-25 | Reconciliation outcomes | Only the two outcomes of the life cycle change a payment. Every other difference is flagged for support, with no automatic money movement. | Reconciliation | FR-26 | AC-26.2 to AC-26.7 |
+| AMB-26 | Refund of a Completed payment | A refund is a separate refund request record and the payment stays Completed. The customer gets the full total back and the agent commission is not reversed. | Accounts and Wallet, Payment Processing | FR-11, FR-27 | AC-27.1 to AC-27.7 |
+| AMB-27 | Failures per biller | A failure is a payment that reached Failed (including those that later became Refunded). Rejected payments are counted in a separate column. | Cross-cutting (reporting) | FR-28 | AC-28.1 to AC-28.4 |
+| AMB-28 | Audit log | Every money movement and admin action writes an audit record in the same transaction. Records cannot be changed or deleted. | Cross-cutting (audit) | FR-25 | AC-25.1 to AC-25.5, NFR-5 |
+| AMB-29 | Immutable ledger | Ledger entries are never edited or deleted. A mistake is corrected by a new entry that points to the old one. | Accounts and Wallet | FR-5 | AC-5.1 to AC-5.7 |
+| AMB-30 | Load test | The load test uses 1,000 customer accounts and fixed mock-biller latencies, and reports throughput, errors and latency. The target is not changed. | Cross-cutting (quality) | FR-9, FR-15 | NFR-2 |
+| AMB-31 | Scope of the coverage target | Coverage is measured on the business-rule packages only, and the CI build fails below 70%. | Cross-cutting (quality) | All domain rules | NFR-6 |
+| AMB-34 | Priority of the non-functional requirements | All six NFRs have the priority Must, and each one has an automated check. | Cross-cutting (quality) | NFR-1 to NFR-6 | NFR-1 to NFR-6 |
+| AMB-35 | Technology stack | The project uses Python with FastAPI, PostgreSQL and Docker. Person 1 records this in the README. | Cross-cutting (technology) | TC-2, TC-3, TC-4, TC-7, TC-8 | NFR-2, NFR-4, NFR-6 |
 
-#### A. Accounts, wallet and limits
+### 9.4 Decision records
 
-| ID | Ambiguity | Why it matters | Proposed decision | Type / status |
+##### A. Accounts, wallet and limits
+
+#### AMB-01 - Daily limit window
+
+| Field | Detail |
+|---|---|
+| Ambiguity | "Per day" for the daily limit is not defined (calendar day or rolling 24 hours, and which time zone). |
+| Why it matters | It decides when a customer's daily total resets and how limit tests are written. |
+| Decision | **The daily limit is counted per calendar day in Egypt time (Africa/Cairo) and resets at 00:00 Cairo time.** |
+| How the program handles it | 1. All timestamps are stored in UTC.<br>2. When a payment is initiated, the Fraud Checks module converts the payment's date to Cairo time and computes the day window [00:00 today, 00:00 tomorrow) in UTC.<br>3. daily_total = sum of the bill amounts of this customer's payments created inside the window whose state is FundsHeld, SentToBiller, Unknown or Completed (see AMB-02).<br>4. The same Cairo day boundary is used for the daily totals report (FR-28), promotion dates (AMB-14) and the reconciliation cut-off (AMB-24). |
+| Reason | It is simple to explain and test, matches the plain meaning of "per day", and customers and billers work in Egypt time. A rolling 24-hour window needs a moving sum for every payment. |
+| Affects | Module: Fraud Checks. Requirements: FR-18, FR-26, FR-28. |
+| Verified by | AC-18.3, AC-18.4, AC-18.5, AC-18.9 |
+| Configuration | `app.timezone` = `Africa/Cairo` |
+
+#### AMB-02 - Basis of the limits
+
+| Field | Detail |
+|---|---|
+| Ambiguity | It is not stated whether the daily and the single-payment limits apply to the bill amount or to the total including the fee, nor which payments count towards the daily total. |
+| Why it matters | It changes which payments are rejected near the limit. |
+| Decision | **All limits apply to the bill amount (without the PayLink fee). The minimum and maximum are inclusive.** |
+| How the program handles it | 1. Single-payment check: `min <= amount <= max` (5.00 to 10,000.00 EGP). Outside the range the payment is created and moves to Rejected with reason `AMOUNT_BELOW_MINIMUM` or `AMOUNT_ABOVE_MAXIMUM`.<br>2. Daily check: the payment passes if `daily_total + amount <= daily_limit`, so a daily total of exactly 5,000.00 EGP is allowed. Otherwise it is Rejected with reason `DAILY_LIMIT_EXCEEDED`.<br>3. daily_limit is 5,000.00 EGP for Basic and 30,000.00 EGP for Verified customers, read from configuration.<br>4. Rejected, Failed and Refunded payments are not counted, because no money was finally spent. Unknown payments are counted, because the biller may still have received them.<br>5. The fee is added only to the hold (amount + fee) and never to the limits. |
+| Reason | The brief says a basic account "may pay at most 5,000 EGP per day", which is about what the customer pays towards bills; the fee is PayLink's own charge. Counting Unknown payments keeps the exposure of money that may still be paid. |
+| Affects | Module: Fraud Checks. Requirements: FR-9, FR-18. |
+| Verified by | AC-18.1a to AC-18.6 |
+| Configuration | `limits.single.min` = 5.00, `limits.single.max` = 10000.00, `limits.daily.basic` = 5000.00, `limits.daily.verified` = 30000.00 |
+
+#### AMB-03 - Registration, login and roles
+
+| Field | Detail |
+|---|---|
+| Ambiguity | How users register and log in, and which roles exist, is not specified (the brief mentions "login" in step 1 and the roles admin, support employee and agent). |
+| Why it matters | It is needed for every authorisation rule and for the registration and login endpoints. |
+| Decision | **Users register with a unique mobile number and a password and log in for a token. There are four roles: customer, agent, admin and support.** |
+| How the program handles it | 1. `POST /auth/register` creates a customer. The mobile number must be unique and in international format; a duplicate returns `VALIDATION_ERROR` (422) and creates nothing.<br>2. Passwords are stored only as a salted hash (bcrypt or argon2).<br>3. `POST /auth/login` returns a signed access token that expires after the configured time. Every other endpoint requires the token; a missing or invalid token returns `UNAUTHENTICATED` (401).<br>4. Each user has one role. Admin, support and agent accounts are created by a seed script or by an admin, never by public registration.<br>5. Every endpoint checks the role: a role that is not allowed gets `FORBIDDEN` (403), and a customer can only read and change their own data.<br>6. Real identity verification is simulated. |
+| Reason | Roles are needed to decide who may view wallets, change configuration, block accounts or search payments. This is the simplest standard approach and real identity checks are out of scope. |
+| Affects | Module: Accounts and Wallet. Requirements: FR-1, FR-6, FR-20, FR-21. |
+| Verified by | AC-1.1 to AC-1.4, AC-2.4, AC-6.5, AC-9.7, AC-20.5 |
+| Configuration | `auth.token_ttl_minutes` = 60 |
+
+#### AMB-04 - Verification upgrade
+
+| Field | Detail |
+|---|---|
+| Ambiguity | Who upgrades a customer to Verified, and how, is not stated (FR-2). |
+| Why it matters | It decides the actor of FR-2 and of its audit record. |
+| Decision | **An admin upgrades a customer from Basic to Verified. No downgrade is built.** |
+| How the program handles it | 1. `PUT /customers/{id}/verification` with `{level: VERIFIED, note}` is allowed for the admin role only.<br>2. The note (for example "simulated ID check") is mandatory and is stored in the audit record.<br>3. If the customer is already Verified the call changes nothing and answers that the customer is already Verified.<br>4. The new daily limit applies to payments initiated after the change. |
+| Reason | Verification is an administrative action, so one clear actor keeps the audit log simple. The brief does not ask for a downgrade. |
+| Affects | Module: Accounts and Wallet. Requirements: FR-2. |
+| Verified by | AC-2.1 to AC-2.5 |
+
+#### AMB-05 - Wallet creation and top-up
+
+| Field | Detail |
+|---|---|
+| Ambiguity | When a wallet is created, whether top-ups have limits or a maximum balance, and whether an agent's own wallet is involved in a cash top-up are not stated. |
+| Why it matters | It affects FR-1, FR-4 and the ledger. |
+| Decision | **Every customer and agent gets one EGP wallet at registration. A top-up credits only the customer's wallet.** |
+| How the program handles it | 1. The wallet is created in the same database transaction as the user.<br>2. A top-up amount must be greater than 0 and have at most two decimals; otherwise `VALIDATION_ERROR` (422). There is no other limit and no maximum balance.<br>3. Simulated card: `POST /wallet/topups` calls the mock card service. If it answers APPROVED, one ledger credit of type TOPUP is posted; if DECLINED, nothing is posted and the reason is returned.<br>4. Agent cash: `POST /agents/{id}/cash-topups` with the customer and the amount posts a TOPUP credit to the customer's wallet and stores the agent's id on the entry. The agent's wallet is not debited, and the cash settlement happens outside the system. |
+| Reason | The brief gives agents a wallet only for commission and describes no agent float. Crediting only the customer keeps the ledger simple and avoids an agent balance that could go negative. |
+| Affects | Module: Accounts and Wallet. Requirements: FR-1, FR-4. |
+| Verified by | AC-1.1, AC-4.1 to AC-4.5 |
+
+#### AMB-06 - Agent payments
+
+| Field | Detail |
+|---|---|
+| Ambiguity | When an agent pays on behalf of a customer (FR-17), it is not stated whose wallet is charged, whose limits apply and how the customer agrees. |
+| Why it matters | It decides the ledger entries, the limit checks and the commission. |
+| Decision | **The customer's wallet is charged and the customer's limits apply. The agent only earns the commission.** |
+| How the program handles it | 1. The payment request sent by an agent carries `customer_id` and `customer_consent: true`. Consent is simulated; no one-time code is built.<br>2. The payment stores both the customer and `initiated_by_agent_id`.<br>3. Fraud checks, the hold and the final charge all use the customer's wallet and verification level.<br>4. When the payment becomes Completed, the Fees and Commissions module credits 40% of the fee to the agent's wallet through a COMMISSION ledger entry (see AMB-12 and AMB-14).<br>5. A user without the agent role who sends `customer_id` gets `FORBIDDEN` (403). |
+| Reason | The customer owns the money, so the customer's limits protect the customer. The brief says the agent only earns a commission. |
+| Affects | Module: Payment Processing. Requirements: FR-17. |
+| Verified by | AC-17.1 to AC-17.7 |
+
+##### B. Payment processing and fraud checks
+
+#### AMB-07 - Idempotency key
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The scope and lifetime of the idempotency key, and the behaviour for the same key with different data, are not stated. |
+| Why it matters | It is needed to implement FR-10 safely and to test HC-1. |
+| Decision | **The key is required on every payment request, is unique per account, and is kept for 24 hours. The same key with different data is rejected.** |
+| How the program handles it | 1. The client sends the header `Idempotency-Key` (1 to 64 characters). Without it the request returns `VALIDATION_ERROR` (422).<br>2. A table `idempotency_keys` stores `customer_id`, `key`, a SHA-256 hash of the request body, `payment_id`, the stored response and `created_at`, with a unique constraint on (`customer_id`, `key`).<br>3. The first request inserts the key row in the same transaction as the payment. A parallel duplicate hits the unique constraint and returns the current state of the existing payment, so only one payment is created.<br>4. A repeat with the same body returns the stored result with HTTP 200 and the header `Idempotent-Replay: true`, and does not run any rule again.<br>5. A repeat with a different body returns `IDEMPOTENCY_CONFLICT` (409) and changes nothing.<br>6. A cleanup job removes keys older than the configured retention. |
+| Reason | A key per account stops one customer's key from blocking another's. 24 hours covers late retries from slow or offline phones, and rejecting different data prevents a wrong replay. |
+| Affects | Module: Payment Processing. Requirements: FR-10. |
+| Verified by | AC-10.1 to AC-10.7 |
+| Configuration | `idempotency.retention_hours` = 24 |
+
+#### AMB-08 - Velocity rule
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The velocity rule does not say what counts as a "payment" (attempts or only accepted payments), whether the window is sliding, or whether the triggering payment is itself blocked. |
+| Why it matters | It decides when the block starts and how the rule is tested. |
+| Decision | **A sliding 60-second window counts payment attempts. The 6th attempt is rejected and the account is blocked for 10 minutes.** |
+| How the program handles it | 1. Every new payment request (new idempotency key) is stored as a payment, whatever its result. Replays of the same key are not counted.<br>2. At the velocity step the Fraud Checks module counts this customer's payments created in the last 60 seconds, not counting those rejected with `ACCOUNT_BLOCKED`.<br>3. If the count is 5 or more, the new payment is Rejected with reason `VELOCITY_EXCEEDED` and `blocked_until` = now + 10 minutes is set on the account.<br>4. While `blocked_until` is in the future, new payments are Rejected with reason `ACCOUNT_BLOCKED` and the response shows `blocked_until`.<br>5. The block ends by itself: the check only compares `blocked_until` with the current time, so no job is needed.<br>6. An audit record is written when the block starts. |
+| Reason | Counting attempts stops bursts even when the payments are rejected. Not counting replays keeps honest retries safe (FR-10). A sliding window has no gap at the end of a fixed minute, and rejecting the 6th attempt matches "more than 5". |
+| Affects | Module: Fraud Checks. Requirements: FR-19. |
+| Verified by | AC-19.1 to AC-19.7 |
+| Configuration | `velocity.max_payments` = 5, `velocity.window_seconds` = 60, `velocity.block_minutes` = 10 |
+
+#### AMB-09 - Account blocks
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The brief does not say what "blocked" prevents, how a manual block (FR-21) and an automatic velocity block interact, or what happens to payments already in progress. |
+| Why it matters | It decides the blocked-account fraud check and the support functions. |
+| Decision | **A block stops new payments only. The customer can still log in, view the wallet and top up. Payments already in progress finish normally.** |
+| How the program handles it | 1. The account has `status` (ACTIVE or BLOCKED), `block_reason` and `blocked_until`. A manual block sets `status` = BLOCKED; a velocity block sets `blocked_until`.<br>2. `POST /accounts/{id}/block` and `POST /accounts/{id}/unblock` need the support role and a mandatory reason; without a reason `VALIDATION_ERROR` (422).<br>3. A new payment from a blocked account is Rejected with reason `ACCOUNT_BLOCKED`, nothing is held and the biller is not called.<br>4. Payments already past the fraud-check stage are not cancelled.<br>5. A manual block lasts until it is lifted. Unblocking sets `status` = ACTIVE and clears `blocked_until`, so it lifts both kinds of block.<br>6. Every block and unblock writes an audit record. |
+| Reason | Blocking only new payments stops the risk without trapping money that is already held. Keeping the wallet readable lets a blocked customer see the balance, and one unblock action for both kinds of block is simplest for support. |
+| Affects | Module: Fraud Checks, Accounts and Wallet. Requirements: FR-19, FR-21. |
+| Verified by | AC-19.4, AC-19.5, AC-21.1 to AC-21.8 |
+
+#### AMB-10 - Payment amount and partial payments
+
+| Field | Detail |
+|---|---|
+| Ambiguity | It is not stated whether a customer may pay a different amount than the inquired bill (partial payment) or choose the amount (mobile top-up). |
+| Why it matters | AquaCo rejects payments above the bill amount (HC-3), so the payment API must define the amount. |
+| Decision | **No partial payments. A bill payment must equal the amount returned by the inquiry. Only a mobile top-up has a customer-chosen amount.** |
+| How the program handles it | 1. `POST /payments` references an `inquiry_id`. For electricity and water the server takes the amount from the stored inquiry; if the request carries a different amount it returns `AMOUNT_MISMATCH` (422) and creates nothing.<br>2. For mobile top-up the customer sends the amount. The allowed range is the intersection of the biller's range from the catalog and the global range 5.00 to 10,000.00 EGP; outside it the payment is Rejected with `AMOUNT_BELOW_MINIMUM` or `AMOUNT_ABOVE_MAXIMUM`.<br>3. A refusal by a biller, for example because the bill changed after the inquiry, is handled as in HC-3: Failed, hold released, Refunded. |
+| Reason | The brief only describes paying the bill that was shown. Partial payments would need rules for the remaining balance. A top-up has no bill, so the customer must choose the amount. |
+| Affects | Module: Payment Processing. Requirements: FR-8, FR-9, FR-15. |
+| Verified by | AC-8.7, AC-9.8, AC-15.3 |
+
+#### AMB-11 - Notifications for Rejected payments
+
+| Field | Detail |
+|---|---|
+| Ambiguity | FR-22 asks for SMS and push messages on "completion and failure", but Rejected is a different state from Failed. |
+| Why it matters | It decides which events create notifications. |
+| Decision | **Rejected payments are answered in the API response only. SMS and push are sent for Completed and Failed.** |
+| How the program handles it | 1. The Notifications module listens only to the events PAYMENT_COMPLETED and PAYMENT_FAILED and sends SMS and push for them.<br>2. A Rejected payment returns the state REJECTED, the `reason_code` and a readable message in the API response, and creates no notification.<br>3. For an Unknown payment the API response says that the payment is being processed. The customer is notified later, when it becomes Completed or Failed. |
+| Reason | A Rejected payment never moved money and the customer sees the reason at once. SMS and push are kept for the two outcomes that the brief names. |
+| Affects | Module: Notifications. Requirements: FR-22. |
+| Verified by | AC-22.1 to AC-22.4 |
+
+#### AMB-32 - Order of the fraud checks
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The brief lists the fraud checks (daily limit, number of payments in the last minute, blocked account) but not their order, nor which reason is shown when several rules fail. |
+| Why it matters | The order decides the customer-facing reason and the test results. |
+| Decision | **The checks run as a chain in this order: amount range, blocked account, daily limit, velocity. The first failing check decides the reason.** |
+| How the program handles it | 1. The chain is built from separate rule classes (Chain of Responsibility). The first rule that fails stops the chain and the payment becomes Rejected with that rule's reason code.<br>2. The blocked-account check comes first, so a blocked customer sees the real reason and blocked attempts are not counted for the velocity rule.<br>3. The daily limit comes before velocity, because it is a cheap check on data that already exists. |
+| Reason | A blocked customer must be told that the account is blocked, not that a limit was exceeded. The brief names the three checks but gives no order, so the order is chosen for clear reasons. |
+| Affects | Module: Fraud Checks. Requirements: FR-18, FR-19, FR-21. |
+| Verified by | AC-18.8 |
+
+##### C. Fees and commission
+
+#### AMB-12 - Rounding of money
+
+| Field | Detail |
+|---|---|
+| Ambiguity | BR-13 requires exact decimals but gives no rounding mode or scale for the 1.5% fee and the 40% commission. |
+| Why it matters | Different choices give different cents in implementations and tests. |
+| Decision | **Money has 2 decimals and is rounded half up. The fee is rounded first, then the 1.00 EGP minimum applies.** |
+| How the program handles it | 1. Amounts use the exact decimal type of the language and a `NUMERIC(14,2)` database column. JSON carries amounts as strings, for example `"352.50"`.<br>2. Top-up fee = `max(round_half_up(amount * 1.5%), 1.00)`. Example: 123.45 gives 1.85175, rounded to 1.85.<br>3. Commission = `round_half_up(fee * 0.40)` where fee is the fee actually charged.<br>4. Floating-point numbers are never used for money. |
+| Reason | Piasters are the smallest money unit and half up is the common rule. Applying the minimum after rounding keeps the fee at least 1.00 EGP. |
+| Affects | Module: Fees and Commissions. Requirements: FR-16, FR-17. |
+| Verified by | AC-16.2a, AC-16.2b, AC-16.3, AC-17.2 |
+| Configuration | `money.scale` = 2, `money.rounding` = `HALF_UP` |
+
+#### AMB-13 - Internet fee tier boundary
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The internet tier says "2 EGP up to 200 EGP, 4 EGP above": the boundary value 200.00 is not explicit. |
+| Why it matters | It affects the fee for exactly 200.00 EGP. |
+| Decision | **An amount up to and including 200.00 EGP pays 2.00 EGP; an amount above 200.00 EGP pays 4.00 EGP.** |
+| How the program handles it | 1. The Strategy for internet fees tests `amount <= fees.tier.internet.threshold`.<br>2. The two fee values and the threshold are read from configuration. |
+| Reason | "Up to 200 EGP" includes 200, so exactly 200.00 stays in the lower tier. |
+| Affects | Module: Fees and Commissions. Requirements: FR-16. |
+| Verified by | AC-16.4a, AC-16.4b |
+| Configuration | `fees.tier.internet.threshold` = 200.00, `fees.tier.internet.low` = 2.00, `fees.tier.internet.high` = 4.00 |
+
+#### AMB-14 - Promotion period
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The promotion rule leaves open whether more than one promotion can run at once, whether the end date is inclusive, which time zone applies, and whether commission is still paid when the fee is 0. |
+| Why it matters | It affects fees, revenue and agent income. |
+| Decision | **One promotion at a time, for one biller, with inclusive Cairo dates. The fee is 0.00 EGP and so is the commission.** |
+| How the program handles it | 1. The promotion is configuration data: `biller_code`, `start_date`, `end_date`. Saving a second promotion that overlaps the first returns `PROMOTION_OVERLAP` (422).<br>2. A promotion is active when `start_date <= today (Cairo) <= end_date`, so both whole days count.<br>3. The inquiry and the payment both use fee 0.00 EGP for that biller while the promotion is active; other billers are not affected.<br>4. The fee is evaluated when the payment is initiated. The commission is 40% of the fee actually charged, so it is 0.00 EGP. |
+| Reason | One promotion matches the brief's "one chosen biller". Whole days are easiest for an admin to configure, and the brief defines the commission as 40% of the service fee. |
+| Affects | Module: Fees and Commissions. Requirements: FR-16, FR-17. |
+| Verified by | AC-8.2, AC-16.5, AC-16.6, AC-17.4 |
+| Configuration | `promotion.biller_code`, `promotion.start_date`, `promotion.end_date` |
+
+#### AMB-15 - Editable configuration
+
+| Field | Detail |
+|---|---|
+| Ambiguity | FR-24 does not say which values are editable or whether a change affects payments already in progress. |
+| Why it matters | It is needed for the configuration design. |
+| Decision | **Fees, limits, promotions, velocity, timeouts and retry settings are stored in a database table and are editable by an admin. A change affects only payments initiated afterwards.** |
+| How the program handles it | 1. A table `configuration` stores `key`, `value`, `updated_by` and `updated_at`.<br>2. `PUT /admin/config/{key}` is allowed for the admin role only. The server validates the type and range: values must not be negative, a minimum must not be above its maximum, and fees must be numbers with at most two decimals. An invalid value returns `VALIDATION_ERROR` (422) and the old value stays.<br>3. The new value is used by the next payment without a restart (the cache is cleared on every change).<br>4. A payment stores its own fee at initiation, so it never changes afterwards.<br>5. Every change writes an audit record with the old value, the new value and a mandatory reason. |
+| Reason | It matches "fee and limit values" in FR-24. Changing payments in progress would make the charged total differ from the one the customer saw. |
+| Affects | Module: Fees and Commissions. Requirements: FR-24. |
+| Verified by | AC-18.7, AC-24.1 to AC-24.6 |
+| Configuration | All keys in section 9.5 |
+
+#### AMB-33 - Validity of the inquiry total
+
+| Field | Detail |
+|---|---|
+| Ambiguity | It is not stated how long the fee and total shown by an inquiry stay valid when the bill or the configuration changes before the customer pays. |
+| Why it matters | A customer could see one total and be charged another. |
+| Decision | **The customer is never charged a different total than the one shown. If the total has changed, the payment is refused and the customer must run the inquiry again.** |
+| How the program handles it | 1. The payment request carries `expected_total` from the inquiry.<br>2. When the payment is initiated the server calculates the fee again. If the new total differs from `expected_total`, it returns `QUOTE_CHANGED` (409), holds nothing and creates no payment.<br>3. Otherwise the fee is stored on the payment and is never recalculated.<br>4. If the bill itself changed at the biller, the biller refuses the payment and the normal failure path applies (HC-3). |
+| Reason | It guarantees that the customer pays exactly what was shown, and the biller stays the only source of the bill amount. |
+| Affects | Module: Payment Processing, Fees and Commissions. Requirements: FR-8, FR-9, FR-24. |
+| Verified by | AC-8.8, AC-24.2 |
+
+##### D. Billers and the payment life cycle
+
+#### AMB-16 - TopUpNet callback waiting time
+
+| Field | Detail |
+|---|---|
+| Ambiguity | TopUpNet answers "accepted" and calls back "minutes later". The 10-second timeout covers live billers, but the brief does not say how long to wait for the callback or what happens if it never arrives. |
+| Why it matters | A payment could stay in SentToBiller forever. |
+| Decision | **A TopUpNet payment waits 30 minutes for its callback. After that it becomes Unknown.** |
+| How the program handles it | 1. The 10-second timeout applies to the first answer. If "accepted" does not arrive in 10 seconds the payment becomes Unknown at once (BR-10).<br>2. After "accepted" the payment stays SentToBiller and `callback_deadline` = accepted time + 30 minutes is stored.<br>3. `POST /callbacks/topupnet` finds the payment by its reference and completes or fails it (FR-14).<br>4. A scheduler job runs every minute. It moves every TopUpNet payment in SentToBiller whose `callback_deadline` has passed to Unknown. The re-query schedule of AMB-17 starts at that moment.<br>5. The funds stay held while the payment waits. |
+| Reason | The brief says the callback comes "minutes later", so waiting is normal and must not count as a failure. A configurable limit prevents waiting forever and uses the existing SentToBiller to Unknown transition. |
+| Affects | Module: Biller Integration. Requirements: FR-13, FR-14. |
+| Verified by | AC-14.1, AC-14.2, AC-14.7, AC-15.4 |
+| Configuration | `topupnet.callback_wait_minutes` = 30, `biller.timeout_seconds` = 10 |
+
+#### AMB-17 - Re-query schedule
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The re-query schedule "after 1, 5 and 15 minutes" does not say from which moment the times are counted, and whether each biller offers a payment-status query. |
+| Why it matters | It decides the retry schedule and the biller contracts. |
+| Decision | **The times are counted from the moment the payment became Unknown. Each mock biller offers a payment-status query.** |
+| How the program handles it | 1. When a payment becomes Unknown the system creates three tasks (Command pattern) due at +1, +5 and +15 minutes, stored in `requery_tasks` with `due_at` and `status`.<br>2. A worker picks up due tasks and calls the biller's status query (`GET /payments/{reference}` on the mock billers).<br>3. The answers are handled this way: PAID makes the payment Completed; REFUSED makes it Failed and then Refunded; NOT_FOUND, PENDING or an error is inconclusive and nothing changes.<br>4. After the third inconclusive answer the payment is marked `waiting_for_reconciliation` (see AMB-18).<br>5. A late reply to the original request, after the timeout, is logged and ignored; only the status query resolves the payment.<br>6. If the instructor's mock-biller contract differs, the adapters and mock billers follow the contract. |
+| Reason | Fixed times from one starting point are easy to test. A late original reply cannot be verified, so the status query decides. We write the mock billers ourselves, so they can offer a status query. |
+| Affects | Module: Biller Integration, Payment Processing. Requirements: FR-13. |
+| Verified by | AC-13.2 to AC-13.7 |
+| Configuration | `requery.delays_minutes` = 1, 5, 15 |
+
+#### AMB-18 - Unknown payments that stay unresolved
+
+| Field | Detail |
+|---|---|
+| Ambiguity | After 3 inconclusive re-queries the payment "waits for reconciliation", but the brief does not say what happens if reconciliation does not resolve it. |
+| Why it matters | Funds could stay held indefinitely. |
+| Decision | **The payment stays Unknown with its funds held and is shown to support as unresolved. It is never refunded automatically.** |
+| How the program handles it | 1. The payment keeps `waiting_for_reconciliation` = true and its funds stay in the held balance.<br>2. `GET /reconciliation/unresolved` (support role) lists reference, biller, amount and the age of every unresolved Unknown payment.<br>3. The daily reconciliation report repeats this list.<br>4. The life cycle gets no new transition. A payment leaves Unknown only through a biller answer, a callback or a settlement file. |
+| Reason | Never refunding an Unknown payment is a hard rule of the brief. Listing unresolved payments gives support a clear task without adding transitions. |
+| Affects | Module: Reconciliation. Requirements: FR-13, FR-26. |
+| Verified by | AC-13.5, AC-26.8 |
+
+#### AMB-19 - Inquiry timeout and biller error codes
+
+| Field | Detail |
+|---|---|
+| Ambiguity | It is not stated whether the 10-second timeout also applies to inquiries, and how biller-specific error codes become customer messages (AquaCo has its own codes). |
+| Why it matters | It is needed for FR-8, HC-3 and for clear reasons in SMS. |
+| Decision | **Inquiries use the same 10-second timeout and create nothing when they fail. Each adapter maps biller error codes to PayLink reason codes.** |
+| How the program handles it | 1. An inquiry that gets no answer in 10 seconds returns `BILLER_UNAVAILABLE` (503). No payment and no ledger entry is created.<br>2. An unknown meter or phone number returns `BILL_NOT_FOUND` (404).<br>3. Each adapter has an error map from the biller's code to a PayLink failure reason (`BILL_ALREADY_PAID`, `AMOUNT_ABOVE_BILL`, `BILLER_REFUSED`, `BILLER_ERROR`). Unknown codes map to `BILLER_ERROR`.<br>4. The payment stores `failure_reason` (PayLink code) and `biller_error_code` (raw code, visible to support only).<br>5. SMS and push use the template of the failure reason. |
+| Reason | One timeout is simpler and a failed inquiry has no financial effect. A common reason list keeps the rest of the system independent of biller codes (NFR-4). |
+| Affects | Module: Biller Integration. Requirements: FR-8, FR-15, FR-22. |
+| Verified by | AC-8.3, AC-8.4, AC-15.3, AC-15.8, AC-22.2 |
+| Configuration | `biller.timeout_seconds` = 10 |
+
+#### AMB-20 - NetCo and disabled billers
+
+| Field | Detail |
+|---|---|
+| Ambiguity | NetCo (daily batch CSV, no live inquiry) is optional, and the 10-second timeout applies to live billers only. Disabling a biller while payments are in progress is also not covered. |
+| Why it matters | It defines the scope and avoids contradicting the life cycle. |
+| Decision | **NetCo is not built. Disabling a biller blocks new payments only and never stops payments in progress.** |
+| How the program handles it | 1. The catalog has an `active` flag for every biller. A payment or inquiry for an inactive biller returns `BILLER_DISABLED` (422).<br>2. The adapter registry does not depend on the flag, so callbacks, status queries and reconciliation for payments in progress continue.<br>3. If NetCo is added later, its payments stay in SentToBiller until the result file arrives, the 10-second timeout does not apply, and the fee follows the internet tiers (BR-06). |
+| Reason | NetCo is optional in the brief, and leaving it out avoids a conflict with the 10-second rule for live billers. Letting payments in progress finish prevents lost or hidden payments. |
+| Affects | Module: Biller Catalog, Biller Integration. Requirements: FR-6, FR-15. |
+| Verified by | AC-6.3, AC-8.6, AC-9.6, AC-15.7 |
+
+##### E. Notifications
+
+#### AMB-21 - Notification retries
+
+| Field | Detail |
+|---|---|
+| Ambiguity | "Retried 3 times" can mean 3 attempts in total or the first attempt plus 3 retries; the delay between retries is not given. |
+| Why it matters | It decides the number of provider calls in the HC-5 test. |
+| Decision | **One first attempt plus 3 retries (4 attempts in total), then the message is marked undelivered.** |
+| How the program handles it | 1. A notification has the states PENDING, DELIVERED, RETRYING and UNDELIVERED, and an `attempt_no`.<br>2. If an attempt fails, the notification is retried after the configured delay, up to 3 times.<br>3. After the fourth failed attempt the state becomes UNDELIVERED and no more attempts are made.<br>4. Every attempt is stored with its number, time and the provider's error.<br>5. A notification failure never changes the payment state or the balances. |
+| Reason | The brief says a failed message "is retried 3 times", which means three repeats after the first failure. A configurable delay lets tests run quickly. |
+| Affects | Module: Notifications. Requirements: FR-23. |
+| Verified by | AC-23.1 to AC-23.4 |
+| Configuration | `notification.max_retries` = 3, `notification.retry_delay_seconds` = 60 |
+
+#### AMB-22 - Notification channels
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The retry rule mentions SMS and email, while FR-22 asks for SMS and push; push retry and the use of email are not described. |
+| Why it matters | It decides how each channel behaves. |
+| Decision | **SMS, push and email share one retry rule. SMS and push are sent for the FR-22 events; email is supported but not used.** |
+| How the program handles it | 1. Each notification has a channel (SMS, PUSH or EMAIL) and uses the same states and retry rule of AMB-21.<br>2. A configuration entry lists the channels for each event: PAYMENT_COMPLETED and PAYMENT_FAILED use SMS and PUSH.<br>3. Adding email for an event later needs only a configuration change. |
+| Reason | One rule for all channels is simpler and makes FR-23 true for push as well. |
+| Affects | Module: Notifications. Requirements: FR-22, FR-23. |
+| Verified by | AC-22.1, AC-22.2, AC-23.5 |
+| Configuration | `notification.channels.PAYMENT_COMPLETED` = SMS, PUSH; `notification.channels.PAYMENT_FAILED` = SMS, PUSH |
+
+#### AMB-23 - Message templates
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The language and content of message templates are not specified. |
+| Why it matters | It is needed for "clear reason" messages. |
+| Decision | **Templates are stored in the database per event, channel and language, in English first.** |
+| How the program handles it | 1. A table `message_templates` has `event`, `channel`, `language` and `body`.<br>2. The body uses placeholders: `{biller}`, `{amount}`, `{fee}`, `{total}`, `{reference}` and `{reason}`.<br>3. The customer has a `language` field with the default `en`. If a template is missing for the language, the English template is used.<br>4. Arabic can be added by inserting rows, without a code change. |
+| Reason | English is enough for the project, and the language field keeps Arabic possible later. |
+| Affects | Module: Notifications. Requirements: FR-22. |
+| Verified by | AC-22.1, AC-22.2, AC-22.7 |
+
+##### F. Reconciliation and refunds
+
+#### AMB-24 - Settlement file
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The settlement file format, delivery, time cut-off and matching key are not specified. |
+| Why it matters | It is needed for the reconciliation design and the mock billers. |
+| Decision | **Each mock biller writes one CSV file per day. Reconciliation reads it at 01:00 Cairo time and matches by payment reference.** |
+| How the program handles it | 1. File name: `settlement_<biller>_<YYYY-MM-DD>.csv`, written to a shared folder by the mock biller. Columns: `payment_reference`, `biller_reference`, `amount`, `timestamp`, `status`.<br>2. The report covers PayLink payments for that biller created between 00:00 and 24:00 Cairo time of the settlement day.<br>3. The reconciliation job runs once per day. A missing file is reported as an error in the report and the job runs again the next hour.<br>4. If the instructor's mock-biller contract differs, the file reader follows the contract. |
+| Reason | CSV is the simplest format and matches NetCo's file. The unique payment reference is already sent to the biller (BR-19), and a midnight cut-off gives a clear daily boundary. |
+| Affects | Module: Reconciliation. Requirements: FR-26. |
+| Verified by | AC-26.1 |
+| Configuration | `reconciliation.run_time` = 01:00 (Africa/Cairo), `reconciliation.folder` = `/data/settlements` |
+
+#### AMB-25 - Reconciliation outcomes
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The life cycle defines two reconciliation outcomes for Unknown payments, and HC-7 defines the case "Failed in PayLink, paid in the file". Other differences are not defined. |
+| Why it matters | It decides which differences change a state and which are only reported. |
+| Decision | **Only the two outcomes of the life cycle change a payment. Every other difference is flagged for support, with no automatic money movement.** |
+| How the program handles it | 1. Unknown and listed as paid: the payment becomes Completed, and fee income, commission and notification follow the normal path.<br>2. Unknown and not listed after the cut-off: the payment becomes Failed, the hold is released and it becomes Refunded.<br>3. Failed but listed as paid (HC-7), Completed but not listed, a file entry with no PayLink payment, or a different amount: a row is stored in `reconciliation_differences` with a type and the status OPEN. No state and no ledger entry changes.<br>4. Support closes a row by setting REVIEWED with a note, which is audited. |
+| Reason | The life cycle allows only the two Unknown outcomes. Every other difference needs a human decision and must not move money automatically (HC-7). |
+| Affects | Module: Reconciliation. Requirements: FR-26. |
+| Verified by | AC-26.2 to AC-26.7 |
+
+#### AMB-26 - Refund of a Completed payment
+
+| Field | Detail |
+|---|---|
+| Ambiguity | FR-27 (Could) lets a customer ask for a refund of a Completed payment, but Completed is final and the life cycle has no transition from Completed to Refunded. Fee, commission and biller treatment are also not stated. |
+| Why it matters | FR-27 and FR-11 could contradict each other. |
+| Decision | **A refund is a separate refund request record and the payment stays Completed. The customer gets the full total back and the agent commission is not reversed.** |
+| How the program handles it | 1. A table `refund_requests` stores `payment_id` (unique), `requested_by`, `reason`, `status` (PENDING, APPROVED or REJECTED), `reviewed_by` and `reviewed_at`.<br>2. `POST /payments/{id}/refund-requests` is allowed for the owner of a Completed payment. A payment in any other state, or with an existing request, is refused.<br>3. `POST /refund-requests/{id}/approve` and `/reject` need the support role. A rejection needs a reason.<br>4. On approval one transaction posts the ledger entries: credit the customer's wallet with amount plus fee, and debit the PayLink fee-income account with the fee and the settlement account with the amount.<br>5. The payment state stays Completed. The agent commission is not reversed, so an agent balance can never become negative.<br>6. Recovering the money from the biller is out of scope. The customer is notified and the action is audited. |
+| Reason | FR-11 allows no other transitions, so a separate record is the only way to satisfy both FR-11 and FR-27. Refunding the full total is fair to the customer, and the brief has no biller reversal contract. |
+| Affects | Module: Accounts and Wallet, Payment Processing. Requirements: FR-11, FR-27. |
+| Verified by | AC-27.1 to AC-27.7 |
+
+#### AMB-27 - Failures per biller
+
+| Field | Detail |
+|---|---|
+| Ambiguity | FR-28 asks for "failures per biller" without defining "failure". |
+| Why it matters | It decides how the report is calculated. |
+| Decision | **A failure is a payment that reached Failed (including those that later became Refunded). Rejected payments are counted in a separate column.** |
+| How the program handles it | 1. `GET /admin/daily-totals?date=YYYY-MM-DD` (admin role) returns, for each biller: completed payments, total amount, fees earned, commissions paid, `failed` and `rejected`.<br>2. `failed` counts payments whose Failed transition happened on that Cairo day.<br>3. Fees and commissions are summed from the ledger, so they equal the ledger for that day. |
+| Reason | Failed means the biller refused the payment or never received it, while Rejected means PayLink refused it. They answer different questions. |
+| Affects | Module: Cross-cutting (reporting). Requirements: FR-28. |
+| Verified by | AC-28.1 to AC-28.4 |
+
+##### G. Quality, data and technology
+
+#### AMB-28 - Audit log
+
+| Field | Detail |
+|---|---|
+| Ambiguity | "Who, when and why" for the audit log is not defined, and neither are retention and protection against change. |
+| Why it matters | It is needed for NFR-5. |
+| Decision | **Every money movement and admin action writes an audit record in the same transaction. Records cannot be changed or deleted.** |
+| How the program handles it | 1. Table `audit_log`: `occurred_at` (UTC), `actor_type` (customer, agent, admin, support or system), `actor_id` (or the component name for the system), `action`, `entity_type`, `entity_id`, `payment_reference`, `reason`, and `before_json` and `after_json` for admin changes.<br>2. Every ledger entry has a mandatory reference `audit_id`, so a money movement without an audit record is impossible.<br>3. The application's database user has INSERT and SELECT rights on `audit_log` only, and a trigger rejects UPDATE and DELETE.<br>4. Automatic actions (timeout, re-query, reconciliation) use the actor type `system` with the component name and the reason.<br>5. Records are kept for the lifetime of the project. |
+| Reason | NFR-5 needs fields that a query can check, and an audit log that can be edited proves nothing. |
+| Affects | Module: Cross-cutting (audit). Requirements: FR-25. |
+| Verified by | AC-25.1 to AC-25.5, NFR-5 |
+
+#### AMB-29 - Immutable ledger
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The brief says balances are computed from the ledger and never overwritten, but does not say that entries are immutable. |
+| Why it matters | It is needed so that the ledger can be trusted. |
+| Decision | **Ledger entries are never edited or deleted. A mistake is corrected by a new entry that points to the old one.** |
+| How the program handles it | 1. Table `ledger_entries` is append-only. The application's database user has no UPDATE or DELETE right, and a trigger rejects both.<br>2. A correction is a new entry with `reverses_entry_id` set.<br>3. Balances are always `SUM(amount)` per wallet and balance type (available or held). Any cached balance must equal this sum.<br>4. All entries of one operation are posted in one transaction. |
+| Reason | A ledger that can be edited cannot prove a balance, and compensating entries keep the full history (derived from BR-16). |
+| Affects | Module: Accounts and Wallet. Requirements: FR-5. |
+| Verified by | AC-5.1 to AC-5.7 |
+
+#### AMB-30 - Load test
+
+| Field | Detail |
+|---|---|
+| Ambiguity | NFR-2 gives a throughput target but no error-rate or response-time target, no biller latency and no account distribution. The velocity rule would block a single account sending many payments. |
+| Why it matters | It decides how the load test is designed and reported. |
+| Decision | **The load test uses 1,000 customer accounts and fixed mock-biller latencies, and reports throughput, errors and latency. The target is not changed.** |
+| How the program handles it | 1. 1,000 seeded customers with enough balance; each virtual user rotates through them, so no account exceeds the velocity rule.<br>2. Mix: 60% ElectroCo, 30% AquaCo, 10% TopUpNet. Mock latencies: ElectroCo 100 to 800 ms, AquaCo 2 to 4 s, TopUpNet accepts in 200 ms.<br>3. 100 payments per second for 60 seconds (6,000 payments) after a 30-second warm-up, with a unique idempotency key for each request.<br>4. The report shows throughput per second, error rate (HTTP 5xx) and the p50, p95 and p99 latency. Latency is reported, not a pass condition.<br>5. After the run, the NFR-1 invariant checks must show 0 double charges and 0 negative balances. |
+| Reason | Many accounts keep the velocity rule from distorting the test, and reporting latency shows real behaviour without inventing a target that the brief does not give. |
+| Affects | Module: Cross-cutting (quality). Requirements: FR-9, FR-15. |
+| Verified by | NFR-2 |
+
+#### AMB-31 - Scope of the coverage target
+
+| Field | Detail |
+|---|---|
+| Ambiguity | "Domain logic" for the 70% coverage target is not defined. |
+| Why it matters | It decides which code counts in the coverage report. |
+| Decision | **Coverage is measured on the business-rule packages only, and the CI build fails below 70%.** |
+| How the program handles it | 1. Included: payment life cycle, wallet and ledger, fees and commissions, fraud rules, reconciliation matching, notification retry policy.<br>2. Excluded: API controllers, framework and configuration code, database migrations, generated code and the HTTP clients of the adapters.<br>3. The GitHub Actions workflow runs the tests with the coverage tool, fails the build if line coverage of the included packages is below 70%, and uploads the report. |
+| Reason | Business rules are what the 70% target is meant to protect. Controllers and generated code would inflate or distort the figure. |
+| Affects | Module: Cross-cutting (quality). Requirements: All domain rules. |
+| Verified by | NFR-6 |
+| Configuration | `coverage.fail_under` = 70 |
+
+#### AMB-34 - Priority of the non-functional requirements
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The brief gives priorities to FR-1 to FR-28 only; the six non-functional requirements have none. |
+| Why it matters | The deliverable asks for priorities, so each NFR needs one. |
+| Decision | **All six NFRs have the priority Must, and each one has an automated check.** |
+| How the program handles it | 1. NFR-1: duplicate and concurrency tests. NFR-2: load test with report. NFR-3: outage test. NFR-4: changed-paths check. NFR-5: audit query. NFR-6: coverage gate in CI.<br>2. A failing NFR check is treated like a failing functional test. |
+| Reason | The brief expects all six and requires a measured number for each, so none of them is optional. |
+| Affects | Module: Cross-cutting (quality). Requirements: NFR-1 to NFR-6. |
+| Verified by | NFR-1 to NFR-6 |
+
+#### AMB-35 - Technology stack
+
+| Field | Detail |
+|---|---|
+| Ambiguity | The language and framework must be declared in Phase 1 (brief, section 3.4), but this is outside the requirements section. |
+| Why it matters | The choice decides the test, coverage, load-test and dependency-check tools used to verify NFR-2, NFR-4 and NFR-6. |
+| Decision | **The project uses Python with FastAPI, PostgreSQL and Docker. Person 1 records this in the README.** |
+| How the program handles it | 1. API: FastAPI with automatic OpenAPI documentation. Database: PostgreSQL with Alembic migrations kept in the repository.<br>2. Tests: pytest, with coverage.py for the coverage gate. Lint: Ruff. Load test: k6 or Locust.<br>3. Docker: one Dockerfile for the API, and one docker compose file with the services `api`, `db` and `mock-billers`. |
+| Reason | FastAPI generates the required OpenAPI documentation automatically, is quick to start and works with pytest, a coverage tool and Locust for the NFR tests. Any of the four stacks allowed by the brief is acceptable, so this is the one that costs the least set-up time. |
+| Affects | Module: Cross-cutting (technology). Requirements: TC-2, TC-3, TC-4, TC-7, TC-8. |
+| Verified by | NFR-2, NFR-4, NFR-6 |
+
+### 9.5 Configuration keys introduced by the decisions
+
+These values are stored in the `configuration` table (AMB-15), never in code (BR-14). "Editable" means an admin can change the value without redeploying (FR-24).
+
+| Key | Default | Unit | Editable | Source |
 |---|---|---|---|---|
-| AMB-01 | "Per day" for the daily limit is not defined (calendar day or rolling 24 hours, and which time zone). | Decides when a customer's daily total resets and how limit tests are written. | The day is the calendar day in Egypt local time (Africa/Cairo) and resets at midnight. All timestamps are stored in UTC and converted for this calculation. | Gap / Open (proposed) |
-| AMB-02 | It is not stated whether the daily and the single-payment limits apply to the bill amount or to the total including the fee, nor which payments count towards the daily total. | Changes which payments are rejected near the limit. | Limits apply to the **bill amount** (excluding the PayLink fee). The daily total counts payments in FundsHeld, SentToBiller, Unknown and Completed; Rejected, Failed and Refunded payments do not count. The minimum (5 EGP) and maximum (10,000 EGP) are inclusive. | Interpretation / Open (proposed) |
-| AMB-03 | How users register and log in, and which roles exist, is not specified (the brief mentions "login" in step 1 and roles such as admin, support and agent). | Needed for every authorisation rule and for the registration and login endpoints. | Registration with a unique mobile number and a password; token-based authentication; four roles: customer, agent, administrator, support employee. Real identity verification is simulated. | Gap / Open (proposed) |
-| AMB-04 | Who upgrades a customer to Verified and how is not stated (FR-2). | Decides the actor of FR-2 and the audit record. | An administrator upgrades the customer (verification is simulated). Only upgrade from Basic to Verified is required. | Gap / Open (proposed) |
-| AMB-05 | When a wallet is created, whether top-ups have limits or a maximum balance, and whether an agent's own wallet is involved in a cash top-up are not stated. | Affects FR-1, FR-4 and the ledger. | One EGP wallet is created automatically at registration (also for agents, whose wallet receives commission). No top-up limit and no maximum balance beyond a positive amount with at most two decimals. A cash top-up through an agent credits the customer's wallet and records the agent; it does not debit the agent's wallet. | Gap / Open (proposed) |
-| AMB-06 | When an agent pays on behalf of a customer (FR-17), it is not stated whose wallet is charged, whose limits apply, and how the customer agrees. | Decides the ledger entries, limit checks and commission. | The **customer's** wallet is charged and the **customer's** limits apply; the agent is recorded on the payment; the commission goes to the agent's wallet. Customer consent (for example a one-time code) is out of scope and treated as simulated. | Gap / Open (proposed) |
+| `app.timezone` | Africa/Cairo | text | No | AMB-01 |
+| `auth.token_ttl_minutes` | 60 | minutes | Yes | AMB-03 |
+| `limits.single.min` | 5.00 | EGP | Yes | AMB-02 |
+| `limits.single.max` | 10000.00 | EGP | Yes | AMB-02 |
+| `limits.daily.basic` | 5000.00 | EGP | Yes | AMB-02 |
+| `limits.daily.verified` | 30000.00 | EGP | Yes | AMB-02 |
+| `fees.fixed.electricity`, `fees.fixed.water` | 2.50 | EGP | Yes | BR-04 |
+| `fees.percent.topup` | 1.5 | percent | Yes | BR-05 |
+| `fees.min.topup` | 1.00 | EGP | Yes | BR-05 |
+| `fees.tier.internet.threshold` | 200.00 | EGP | Yes | AMB-13 |
+| `fees.tier.internet.low`, `fees.tier.internet.high` | 2.00, 4.00 | EGP | Yes | AMB-13 |
+| `commission.agent_rate` | 0.40 | fraction of the fee | Yes | BR-08 |
+| `promotion.biller_code`, `promotion.start_date`, `promotion.end_date` | none | code and dates | Yes | AMB-14 |
+| `money.scale`, `money.rounding` | 2, HALF_UP | digits, mode | No | AMB-12 |
+| `idempotency.retention_hours` | 24 | hours | Yes | AMB-07 |
+| `velocity.max_payments` | 5 | payments | Yes | AMB-08 |
+| `velocity.window_seconds` | 60 | seconds | Yes | AMB-08 |
+| `velocity.block_minutes` | 10 | minutes | Yes | AMB-08 |
+| `biller.timeout_seconds` | 10 | seconds | Yes | AMB-16, AMB-19 |
+| `topupnet.callback_wait_minutes` | 30 | minutes | Yes | AMB-16 |
+| `requery.delays_minutes` | 1, 5, 15 | minutes | Yes | AMB-17 |
+| `notification.max_retries` | 3 | retries | Yes | AMB-21 |
+| `notification.retry_delay_seconds` | 60 | seconds | Yes | AMB-21 |
+| `notification.channels.<event>` | SMS, PUSH | channel list | Yes | AMB-22 |
+| `reconciliation.run_time` | 01:00 | Cairo time | Yes | AMB-24 |
+| `reconciliation.folder` | /data/settlements | path | No | AMB-24 |
+| `coverage.fail_under` | 70 | percent | No | AMB-31 |
 
-#### B. Payment processing and fraud checks
+### 9.6 API error codes and reason codes
 
-| ID | Ambiguity | Why it matters | Proposed decision | Type / status |
-|---|---|---|---|---|
-| AMB-07 | The scope and lifetime of the idempotency key, and the behaviour for the same key with different data, are not stated. | Needed to implement FR-10 safely and to test HC-1. | The key is required on payment requests and is unique per account. A repeat with the same data returns the stored result (the current status if still processing). The same key with different data is rejected with a conflict error. Keys are kept for at least 24 hours (configurable). | Gap / Open (proposed) |
-| AMB-08 | The velocity rule does not say what counts as a "payment" (attempts or only accepted payments), whether the window is sliding, or whether the triggering payment is itself blocked. | Decides when the block starts and how the rule is tested. | A sliding 60-second window counts payment attempts with a new idempotency key (repeats of the same key do not count). The 6th attempt in the window is Rejected and the account is blocked for 10 minutes; the block lifts automatically afterwards. | Interpretation / Open (proposed) |
-| AMB-09 | The brief does not say what "blocked" prevents, how a manual block (FR-21) and an automatic velocity block interact, or what happens to payments already in progress. | Decides the blocked-account fraud check and the support functions. | A block rejects **new payment attempts**; the customer can still log in and view the wallet. Payments already past the fraud-check stage continue through their life cycle. A manual block lasts until a support employee unblocks it; unblocking also lifts a velocity block. The order of the checks is in AMB-32. | Gap / Open (proposed) |
-| AMB-10 | It is not stated whether a customer may pay a different amount than the inquired bill (partial payment) or choose the amount (mobile top-up). | AquaCo rejects payments above the bill amount (HC-3); the payment API must define the amount. | The payment request carries an amount. The effective range is the intersection of the biller's range and the global range of 5 to 10,000 EGP. For mobile top-up the customer chooses the amount within that range. For electricity and water the amount is the inquired bill; whether a lower amount is accepted is decided by the biller, and amounts above the bill are refused by AquaCo as in HC-3. | Gap / Open (proposed) |
-| AMB-11 | FR-22 asks for SMS and push messages on "completion and failure", but Rejected is a different state from Failed. | Decides which events create notifications. | Rejected payments are answered immediately with the reason and create no SMS or push message. Completed and Failed create SMS and push. Unknown is announced in the immediate response and the customer is notified when it later becomes Completed or Failed. | Interpretation / Open (proposed) |
-| AMB-32 | The brief lists the fraud checks (daily limit, number of payments in the last minute, blocked account) but not their order, nor which reason is shown when several rules fail. | The order decides the customer-facing reason and the test results. | After validating the single-payment minimum and maximum, evaluate the daily limit, the velocity rule and the blocked-account check in the order of brief section 2.2 and return the reason of the first failing rule. | Gap / Open (proposed) |
+**Request errors** (no payment is created; HTTP status returned):
 
-#### C. Fees and commission
+| Code | HTTP status | Meaning | Source |
+|---|---|---|---|
+| `UNAUTHENTICATED` | 401 | Request without a valid token | AMB-03 |
+| `FORBIDDEN` | 403 | The role is not allowed for this endpoint or data | AMB-03, AMB-06 |
+| `VALIDATION_ERROR` | 422 | Missing or invalid field, missing `Idempotency-Key`, missing reason, duplicate mobile number | AMB-03, AMB-05, AMB-07, AMB-09, AMB-15 |
+| `AMOUNT_MISMATCH` | 422 | The payment amount differs from the inquired bill | AMB-10 |
+| `BILLER_DISABLED` | 422 | Inquiry or payment for an inactive biller | AMB-20 |
+| `PROMOTION_OVERLAP` | 422 | A second promotion overlaps the first | AMB-14 |
+| `BILL_NOT_FOUND` | 404 | The biller does not know the meter or phone number | AMB-19 |
+| `BILLER_UNAVAILABLE` | 503 | The inquiry got no answer within the timeout | AMB-19 |
+| `IDEMPOTENCY_CONFLICT` | 409 | Same idempotency key with different data | AMB-07 |
+| `QUOTE_CHANGED` | 409 | The total differs from `expected_total`; run the inquiry again | AMB-33 |
 
-| ID | Ambiguity | Why it matters | Proposed decision | Type / status |
-|---|---|---|---|---|
-| AMB-12 | BR-13 requires exact decimals but gives no rounding mode or scale for the 1.5% fee and the 40% commission. | Cents of difference between implementations and tests. | Scale of 2 decimals (piasters), rounding half up. The 1.5% fee is calculated, rounded, and then the 1.00 EGP minimum applies. The commission is 40% of the fee actually charged, rounded half up. | Gap / Open (proposed) |
-| AMB-13 | The internet tier says "2 EGP up to 200 EGP, 4 EGP above": the boundary value 200.00 is not explicit. | Affects the fee for exactly 200.00 EGP. | Amount up to and including 200.00 EGP: 2.00 EGP; above 200.00 EGP: 4.00 EGP. | Interpretation / Open (proposed) |
-| AMB-14 | The promotion rule leaves open: whether more than one promotion can run at once, whether the end date is inclusive, which time zone applies, and whether commission is still paid when the fee is 0. | Affects fees, revenue and agent income. | One promotion biller at a time; configured dates are inclusive of the whole start and end day (Africa/Cairo). The fee is evaluated when the payment is initiated. The commission is 40% of the fee actually charged, so it is 0.00 EGP during a promotion. | Gap / Open (proposed) |
-| AMB-15 | FR-24 does not say which values are editable or whether a change affects payments already in progress. | Needed for the configuration design. | Fees, tiers, minimum fee, daily and single-payment limits and promotion settings are editable; changes apply only to payments initiated afterwards. Velocity and timeout settings are also kept in configuration. | Gap / Open (proposed) |
-| AMB-33 | It is not stated how long the fee and total shown by an inquiry stay valid when the bill or the configuration changes before the customer pays. | A customer could see one total and be charged another. | The fee is fixed when the payment is initiated and the payment keeps it. The payment uses the amount of the inquiry, and a bill that changed in the meantime is detected through the biller's answer. | Gap / Open (proposed) |
+**Payment reason codes** (the payment is created and stored with the state shown; the API returns the state and the `reason_code`):
 
-#### D. Billers and the payment life cycle
+| Code | Payment state | Meaning | Source |
+|---|---|---|---|
+| `AMOUNT_BELOW_MINIMUM`, `AMOUNT_ABOVE_MAXIMUM` | Rejected | Single-payment limits or the biller range | AMB-02, AMB-10 |
+| `ACCOUNT_BLOCKED` | Rejected | Manual block or a velocity block that is still active | AMB-08, AMB-09 |
+| `DAILY_LIMIT_EXCEEDED` | Rejected | The daily total would pass the limit | AMB-01, AMB-02 |
+| `VELOCITY_EXCEEDED` | Rejected | The 6th attempt in 60 seconds; the account is blocked for 10 minutes | AMB-08 |
+| `INSUFFICIENT_FUNDS` | Rejected | The available balance does not cover amount plus fee | FR-12 |
+| `BILL_ALREADY_PAID`, `AMOUNT_ABOVE_BILL`, `BILLER_REFUSED`, `BILLER_ERROR` | Failed | The biller refused or an unknown error code arrived | AMB-19 |
 
-| ID | Ambiguity | Why it matters | Proposed decision | Type / status |
-|---|---|---|---|---|
-| AMB-16 | TopUpNet answers "accepted" and calls back "minutes later". The 10-second timeout covers live billers, but the brief does not say how long to wait for the callback or what happens if it never arrives. | A payment could stay in SentToBiller forever. | The 10-second timeout applies to the first answer. After "accepted" the payment stays in SentToBiller until the callback arrives. If no callback arrives within a configurable waiting period (proposed default 30 minutes), the payment becomes Unknown, which is already an allowed transition. | Gap / Open (proposed) |
-| AMB-17 | The re-query schedule "after 1, 5 and 15 minutes" does not say from which moment the times are counted, and whether each biller offers a payment-status query. | Decides the retry command schedule and the biller contracts. | Times are counted from the moment the payment became Unknown (1, 5 and 15 minutes after it). A late reply to the original request after the timeout is not trusted directly; the next re-query resolves the payment. The mock billers offer a payment-status query for ElectroCo, AquaCo and TopUpNet. To be confirmed with the instructor's biller contract. | Interpretation / Open (proposed) |
-| AMB-18 | After 3 inconclusive re-queries the payment "waits for reconciliation", but the brief does not say what happens if reconciliation does not resolve it. | Funds could stay held indefinitely. | The payment stays Unknown with funds held, is never refunded automatically, and appears in the reconciliation report as unresolved, with its age, for support to review. No manual state change is added to the life cycle. | Gap / Open (proposed) |
-| AMB-19 | It is not stated whether the 10-second timeout also applies to inquiries, and how biller-specific error codes become customer messages (AquaCo has its own codes). | Needed for FR-8, HC-3 and for clear reasons in SMS. | The same 10-second timeout applies to inquiries; a failed inquiry creates no payment and moves no money. Each adapter maps biller error codes to a common list of PayLink failure reasons stored on the payment. | Gap / Open (proposed) |
-| AMB-20 | NetCo (daily batch CSV, no live inquiry) is optional, and the 10-second timeout applies to live billers only. Disabling a biller while payments are in progress is also not covered. | Defines the scope and avoids contradicting the life cycle. | NetCo is out of the mandatory scope. If implemented later, the customer enters the amount, the fee follows BR-06, and its payments stay in SentToBiller until the result file arrives (the 10-second timeout does not apply). Disabling a biller blocks new payments only; callbacks, re-queries and reconciliation for in-progress payments continue. | Gap / Open (proposed) |
-
-#### E. Notifications
-
-| ID | Ambiguity | Why it matters | Proposed decision | Type / status |
-|---|---|---|---|---|
-| AMB-21 | "Retried 3 times" can mean 3 attempts in total or the first attempt plus 3 retries; the delay between retries is not given. | Decides the number of provider calls in the HC-5 test. | The first attempt plus 3 retries (4 attempts), then the message is marked undelivered. The delay is configurable (proposed default 1 minute; tests use a very small delay). | Interpretation / Open (proposed) |
-| AMB-22 | The retry rule mentions SMS and email, while FR-22 asks for SMS and push; push retry and the use of email are not described. | Decides channel behaviour. | The same retry rule applies to every channel (SMS, email, push). SMS and push are sent for the events of FR-22; email is supported by the notification module but not required for any event. | Gap / Open (proposed) |
-| AMB-23 | The language and content of message templates are not specified. | Needed for "clear reason" messages. | Templates are stored per event and channel in English, with a language field so that Arabic can be added without code change. | Gap / Open (proposed) |
-
-#### F. Reconciliation and refunds
-
-| ID | Ambiguity | Why it matters | Proposed decision | Type / status |
-|---|---|---|---|---|
-| AMB-24 | The settlement file format, delivery, time cut-off and matching key are not specified. | Needed for the reconciliation design and the mock billers. | A daily CSV per biller with payment reference, biller reference, amount, timestamp and status, matched by the unique payment reference sent to the biller (BR-19). The day's cut-off is midnight Africa/Cairo. Files are produced by the mock billers. | Gap / Open (proposed) |
-| AMB-25 | The life cycle defines two reconciliation outcomes for Unknown payments, and HC-7 defines the case "Failed in PayLink, paid in the file". Other differences are not defined. | Decides which differences change state and which are only reported. | Unknown and listed as paid: Completed. Unknown and not listed after the cut-off: Failed (then Refunded). Failed but listed as paid (HC-7), Completed but not listed, unknown file entries and amount mismatches: **flagged only**, with no automatic state change, because the life cycle has no transition for them. | Interpretation / Open (proposed) |
-| AMB-26 | FR-27 (Could) lets a customer ask for a refund of a Completed payment, but Completed is final and the life cycle has no transition from Completed to Refunded. Fee, commission and biller treatment are also not stated. | Direct conflict risk between FR-27 and FR-11. | The refund is a separate refund request record; the payment stays Completed. On approval the customer's wallet is credited with the amount and fee through compensating ledger entries, and the PayLink fee income and any agent commission are reversed. Recovering the money from the biller is out of scope and is visible in reconciliation. To be confirmed with the instructor before implementation. | Interpretation / Open (proposed) |
-| AMB-27 | FR-28 asks for "failures per biller" without defining "failure". | Decides how the report is calculated. | A failure is a payment that reached Failed (including those later Refunded) on that day. Rejected payments are counted separately. | Interpretation / Open (proposed) |
-
-#### G. Quality and data
-
-| ID | Ambiguity | Why it matters | Proposed decision | Type / status |
-|---|---|---|---|---|
-| AMB-28 | "Who, when and why" for the audit log is not defined, and neither are retention and protection against change. | Needed for NFR-5. | Each audit record holds actor (id and type: customer, agent, administrator, support or system), UTC timestamp, action, affected entity and payment reference, reason, and before and after values for administrative changes. Records are append-only. Retention is for the lifetime of the project. | Gap / Open (proposed) |
-| AMB-29 | The brief says balances are computed from the ledger and never overwritten, but does not say entries are immutable. | Needed so that the ledger can be trusted. | Ledger entries are never edited or deleted; corrections are new compensating entries. | Derived / Open (proposed) |
-| AMB-30 | NFR-2 gives a throughput target but no error-rate or response-time target, no biller latency, and no account distribution. The velocity rule would block a single account sending many payments. | Decides how the load test is designed and reported. | The load test uses at least 1,000 different customer accounts and documented mock-biller latencies. It reports throughput, error rate and p95 latency, and must also show NFR-1 holds. The target (100 payments per second for 60 seconds) is not changed. | Gap / Open (proposed) |
-| AMB-31 | "Domain logic" for the 70% coverage target is not defined. | Decides which code counts in the coverage report. | Domain logic is the business-rule code: payment life cycle, wallet and ledger, fees and commissions, fraud rules, reconciliation matching and notification retry policy. Controllers, framework configuration, generated code and pure input and output adapters are excluded. | Gap / Open (proposed) |
-| AMB-34 | The brief gives priorities to FR-1 to FR-28 only; the six non-functional requirements have none. | The deliverable asks for priorities, so each NFR needs one. | All six NFRs are treated as **Must** because the brief lists them as expected and requires a measured number for each. | Gap / Open (proposed) |
-| AMB-35 | The language and framework must be declared in Phase 1 (brief, section 3.4), but this is outside the requirements section. | The choice decides the test, coverage, load-test and dependency-check tools used to verify NFR-2, NFR-4 and NFR-6. | Decide as a team (Person 1 and the architecture lead), record it in the repository documentation and update the verification tools in section 7 if needed. | Team decision / Open |
-
-### 9.4 Questions to confirm first with the instructor or team
-
-These open points have the biggest effect on the design and tests, so they should be settled before the design pack is finalised:
-
-1. **AMB-26** - How should FR-27 relate to the life cycle in which Completed is final?
-2. **AMB-02** - Do the limits apply to the bill amount or to the total including the fee?
-3. **AMB-16 and AMB-17** - How long do we wait for the TopUpNet callback, and do the mock billers offer a payment-status query for re-queries?
-4. **AMB-06** - Which wallet and which limits apply when an agent pays on behalf of a customer?
-5. **AMB-24 and AMB-25** - What is the settlement-file format and which differences may change a payment's state?
-6. **AMB-07** - Idempotency-key rules (scope, lifetime and conflicting data).
-7. **AMB-35** - The technology stack (language, framework, database, test and coverage tools) must be declared in Phase 1 (brief, section 3.4); NFR-2, NFR-4 and NFR-6 depend on it.
-8. **AMB-32** - Order of the fraud checks and the reason shown when several rules fail.
+A new payment is answered with HTTP 201 and an idempotent replay with HTTP 200; both bodies contain the payment state (AMB-07).
 
 ## 10. Appendices
 
@@ -1635,13 +2129,14 @@ These open points have the biggest effect on the design and tests, so they shoul
 | Check | Result |
 |---|---|
 | All 28 functional requirements (FR-1 to FR-28) are present with the brief's wording and a user story each | 28 of 28 |
-| Every user story has acceptance criteria in Given / When / Then form (180 criteria in total) | 28 of 28 |
+| Every user story has acceptance criteria in Given / When / Then form (186 criteria in total) | 28 of 28 |
 | Every user story states its priority, module, the verbatim brief requirement and its related items | 28 of 28 |
 | Priorities equal the brief: 19 Must, 7 Should, 2 Could | Matches |
 | Six non-functional requirements with the exact targets of the brief, a description and a verification method | 6 of 6 |
 | Business rules BR-01 to BR-14 reproduce every value of section 2.6 of the brief; the life-cycle table (4.2) reproduces section 2.5 and the biller table (4.4) reproduces section 2.4 | Matches |
 | All eight hard cases are traced to acceptance criteria | 8 of 8 |
-| Assumptions are separated from confirmed requirements and none changes a number, priority or transition of the brief | Yes (section 9) |
+| Decisions for unclear points are separated from the points confirmed by the brief, and none changes a number, priority or transition of the brief | Yes (section 9) |
+| Every one of the 35 ambiguities has a decision record with the program behaviour, the reason, the affected requirements and the verifying tests | 35 of 35 |
 
 ### Appendix C - Reference
 
