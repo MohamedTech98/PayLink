@@ -1185,29 +1185,6 @@ Original message in Egyptian Arabic, translated to English: (the team's prompt l
 OK, add my prompt log to this file and continue it in the same format. Replace Hazem Hamdy with my name, which is Hazem Hamdy. Convert every prompt that I gave you in Arabic to English, all of them, after adding them to the file of course. Do not leave anything in Arabic, and send me the prompt-log.md file after the modification.
 ```
 
----
-
-## 3. Questions raised by the AI during requirements analysis
-
-While writing the requirements pack the AI found points where the brief is silent or can be read in more than one way. The full `docs/requirements.md` records 35 of them in section 9 (AMB-01 to AMB-35). The 12 most important are listed here. The decisions were taken by the AI assistant at the author's request; they are not official requirements of the brief, and the author reviews them and updates the requirements pack if the team or the instructor decides differently.
-
-| ID | Question raised by the AI | Decision (taken by the AI assistant) |
-| --- | --- | --- |
-| AMB-01 | What does "per day" mean for the daily limit? | Calendar day in Africa/Cairo, timestamps stored in UTC |
-| AMB-02 | Do the limits apply to the bill amount or to the total with the fee, and which payments count? | Bill amount without the fee; Unknown payments count, Rejected, Failed and Refunded do not |
-| AMB-03 | How do users register and log in, and which roles exist? | Mobile number and password, token authentication, four roles |
-| AMB-06 | When an agent pays for a customer, whose wallet and limits apply? | The customer's wallet and limits; the agent only receives the commission |
-| AMB-07 | How does the idempotency key work (scope, lifetime, same key with different data)? | Unique per account, kept 24 hours, conflicting reuse is rejected |
-| AMB-08 | What counts as a payment for the velocity rule, and is the sixth payment rejected? | Sliding window, new attempts count, the sixth is rejected and the block starts |
-| AMB-12 | Which rounding applies to the 1.5% fee and the 40% commission? | Two decimals, round half up |
-| AMB-14 | How do promotion dates work and what is the commission when the fee is 0? | Inclusive whole days, one promotion at a time, commission 0.00 |
-| AMB-16 | How long do we wait for the TopUpNet callback after "accepted"? | Stay in SentToBiller, then Unknown after a configurable 30 minutes |
-| AMB-17 | From when are the re-queries counted, and do the mock billers offer a status query? | From the moment the payment became Unknown; the mock billers offer a status query |
-| AMB-25 | Which reconciliation differences may change a payment's state? | Only the two Unknown outcomes of the brief; all others are flagged |
-| AMB-26 | FR-27 refunds a Completed payment, but Completed is final in the life cycle. | A separate refund record; the payment stays Completed; the agent commission is not reversed |
-
----
-
 ## 4. Final design files
 
 The editable PlantUML design files prepared for the team are:
