@@ -8,7 +8,7 @@
 | **Scope of this document** | Problem summary, stakeholders, business rules, functional requirements and user stories, non-functional requirements, ambiguities and decisions |
 | **Version / status** | 1.5 - Draft for team review |
 | **Date** | 23 November 2026 |
-| **Prepared by** | Person 2 (Requirements) - team and author names to be completed before submission |
+| **Prepared by** | Hazem, Mohamed Ahmed, Abdulrahman, Youssef |
 | **Source of truth** | *PayLink Year Work Project - Student Brief* (referred to below as "the brief") |
 
 ## Table of Contents
@@ -218,18 +218,6 @@ Every payment is in exactly one state, and only the transitions below are allowe
 | TopUpNet | Mobile top-up | REST, JSON, asynchronous | Replies "accepted" first, then calls the callback URL minutes later with "success" or "failed". |
 | NetCo (optional) | Internet bills | Daily batch CSV file | No live inquiry. PayLink uploads a file of payments once per day and receives a result file the next morning. |
 
-### 4.5 Technical constraints (brief, sections 3.1 and 3.4)
-
-| ID | Constraint |
-|---|---|
-| TC-1 | At least 6 modules, each with its own package or service, its own tests and a clear public interface. |
-| TC-2 | Language and framework chosen by the team (Java Spring Boot, .NET, Node NestJS or Python FastAPI), declared in Phase 1 and fixed afterwards. |
-| TC-3 | Relational database with at least 10 tables and schema migrations stored in the repository. |
-| TC-4 | At least 20 REST endpoints documented with OpenAPI, plus one asynchronous flow. |
-| TC-5 | At least 5 design patterns applied for a real reason. |
-| TC-6 | A layered or hexagonal modular monolith first, then Notifications and Reconciliation evolved to an event-driven or service-based style (Phase 2). |
-| TC-7 | A Dockerfile per runnable component and one docker compose file starting the application, the database and the mock billers. |
-| TC-8 | A GitHub Actions workflow that builds, lints, tests, reports coverage, builds images and deploys the stack locally. |
 
 ## 5. Functional Requirements Overview
 
@@ -1586,7 +1574,7 @@ Each hard case of section 2.7 of the brief becomes at least one automated test. 
 | AMB-30 | Load test | The load test uses 1,000 customer accounts and fixed mock-biller latencies, and reports throughput, errors and latency. The target is not changed. | Cross-cutting (quality) | FR-9, FR-15 | NFR-2 |
 | AMB-31 | Scope of the coverage target | Coverage is measured on the business-rule packages only, and the CI build fails below 70%. | Cross-cutting (quality) | All domain rules | NFR-6 |
 | AMB-34 | Priority of the non-functional requirements | All six NFRs have the priority Must, and each one has an automated check. | Cross-cutting (quality) | NFR-1 to NFR-6 | NFR-1 to NFR-6 |
-| AMB-35 | Technology stack | The project uses Python with FastAPI, PostgreSQL and Docker. Person 1 records this in the README. | Cross-cutting (technology) | TC-2, TC-3, TC-4, TC-7, TC-8 | NFR-2, NFR-4, NFR-6 |
+| AMB-35 | Technology stack | The project uses Java Spring boot, Sql Server and Docker. Person 1 records this in the README. | Cross-cutting (technology) | TC-2, TC-3, TC-4, TC-7, TC-8 | NFR-2, NFR-4, NFR-6 |
 
 ### 9.4 Decision records
 
@@ -2034,7 +2022,7 @@ Each hard case of section 2.7 of the brief becomes at least one automated test. 
 |---|---|
 | Ambiguity | The language and framework must be declared in Phase 1 (brief, section 3.4), but this is outside the requirements section. |
 | Why it matters | The choice decides the test, coverage, load-test and dependency-check tools used to verify NFR-2, NFR-4 and NFR-6. |
-| Decision | **The project uses Python with FastAPI, PostgreSQL and Docker. Person 1 records this in the README.** |
+| Decision | **The project uses Java Spring boot, Sql server and Docker.** |
 | How the program handles it | 1. API: FastAPI with automatic OpenAPI documentation. Database: PostgreSQL with Alembic migrations kept in the repository.<br>2. Tests: pytest, with coverage.py for the coverage gate. Lint: Ruff. Load test: k6 or Locust.<br>3. Docker: one Dockerfile for the API, and one docker compose file with the services `api`, `db` and `mock-billers`. |
 | Reason | FastAPI generates the required OpenAPI documentation automatically, is quick to start and works with pytest, a coverage tool and Locust for the NFR tests. Any of the four stacks allowed by the brief is acceptable, so this is the one that costs the least set-up time. |
 | Affects | Module: Cross-cutting (technology). Requirements: TC-2, TC-3, TC-4, TC-7, TC-8. |
