@@ -2,9 +2,9 @@
 
 **Project:** PayLink  
 **Phase:** Phase 1 – Requirements and Design  
-**Date of work:** 2026-11-23  
-**Responsible contributors:** `Abdelrhman Mohamed` (domain class and two sequence diagrams); `Youssef Mahmoud` (payment state diagram and database ERD); `Person 2 – name to be filled in` (requirements pack). Replace these role labels with the actual teammate names before submission.  
-**AI tool / mode:** `ChatGPT` for P1–P9 (the exact model/version was not recorded separately in the team prompt history); `Claude` (Anthropic, model shown in the app as Claude Sonnet 5.5) for P10–P15.
+**Date of work:** 2026-11-23 to 2026-11-25  
+**Responsible contributors:** `Abdelrhman Mohamed` (domain class and two sequence diagrams); `Youssef Mahmoud` (payment state diagram and database ERD); `Hazem Hamdy` (requirements pack: problem summary, stakeholders, functional and non-functional requirements, user stories, business rules and ambiguities). Replace these role labels with the actual teammate names before submission.  
+**AI tool / mode:** `ChatGPT` for P1–P9 (the exact model/version was not recorded separately in the team prompt history); `Claude` (Anthropic, model shown in the app as Claude Sonnet 5.5) for P10–P25. Some messages were written in Egyptian Arabic; all of them are translated to English in this log.
 
 ## 1. Prompt log summary
 
@@ -19,14 +19,24 @@
 | P7  | 2026-11-23 | Youssef Mahmoud    | ChatGPT        | Payment State Diagram – initial generation      | Generate the eight required states and only the transitions in section 2.5                                  | The AI generated all eight states and the specified transitions correctly. A small manual wording correction clarified that the 10-second timeout applies to live billers, not the intentionally asynchronous TopUpNet flow.                                      | **Accepted after minor manual correction** |
 | P8  | 2026-11-23 | Youssef Mahmoud    | ChatGPT        | Database ERD – initial generation               | Generate a compact relational ERD with at least 10 tables, PKs, FKs and cardinalities                       | The first ERD had a useful 15-table structure, but needed stronger user/service/payment attributes, a safer LedgerEntry source design, and clearer audit/cardinality constraints.                                                                                 | **Fixed** – follow-up prompt P9 was used.  |
 | P9  | 2026-11-23 | Youssef Mahmoud    | ChatGPT        | Database ERD – refinement                       | Correct the ERD's fields, foreign keys, uniqueness, role constraints and ledger source references           | The revised ERD corrected the main issues. Final manual edits clarified the audit relationship/cardinality, financial precision, one-source-per-ledger-entry constraint, audit creation requirement, role checks and the scope of deferred reconciliation tables. | **Accepted after manual review**           |
-| P10 | 2026-11-23 | Person 2 | Claude | Preparation – read the brief | Read the project brief and confirm understanding before giving tasks | The AI read the brief (its first file view was truncated in the middle, so it re-read the missing lines) and summarised the modules, payment states, billers, business rules and Phase 1 and 2 deliverables. | **Accepted after check** – the summary matched the brief; the PDF copy sent afterwards had the same content. |
-| P11 | 2026-11-23 | Person 2 | Claude | Requirements pack – initial generation | Generate `requirements.md` and `requirements.pdf`: problem summary, stakeholders, 28 user stories with Given/When/Then, 6 NFRs, business rules, ambiguities | The AI produced a 28-story pack with 166 acceptance criteria and 31 ambiguities. Problems found: admin and regulators were marked "derived" although the brief names them (FR-6, section 2.1); five criteria put two scenarios in one line; criteria were long single lines that are hard to turn into tests; the first PDF render had wrapped ID columns ("AMB-" / "01"). | **Fixed** – follow-up prompts P12 and P13 were used. |
-| P12 | 2026-11-23 | Person 2 | Claude | Requirements pack – review | Compare the AI version with another version of the requirements document supplied by the user and say which is better | The AI compared both. The other version was stronger in layout and traceability (verbatim brief requirement per story, separate Given/When/Then lines, objective and challenge IDs, stakeholder IDs, extra ambiguities); the AI version had extras of its own (actor list, hard-case table, consistency table). | **Accepted** – used to decide the next prompt. |
-| P13 | 2026-11-23 | Person 2 | Claude | Requirements pack – improvement | Edit the AI's own version using the strengths of the other file | The AI added per-story attribute tables, separate Given/When/Then lines, objectives and challenges tables, stakeholder IDs, a billers table, a module table, 9 extra criteria and 4 extra ambiguities. Problems found: the AI first started from the wrong base (the other file) and the user had to correct it; the document became much larger than what the brief requires, and after a CSS change the ID columns wrapped again in the PDF (found by the AI's own render check and corrected). | **Fixed** – follow-up prompts P14 and P15 were used. |
-| P14 | 2026-11-23 | Person 2 | Claude | Requirements pack – scope check | Ask whether all the extra sections were required, since only the problem definition and the functional and non-functional requirements are required | The AI answered that the extras were not required, separated the core sections from the extras and offered a shorter version. | **Accepted** |
-| P15 | 2026-11-23 | Person 2 | Claude | Requirements pack – final trimmed version | Produce the shorter version | The AI kept the problem summary, stakeholders, business rules, the 28 user stories (180 criteria), the 6 NFRs and the 12 most important ambiguities, removed the extras and regenerated the PDF (21 pages). It checked that all 28 stories, priorities and Given/When/Then structures are correct and that every identifier in the Markdown appears in the PDF. | **Accepted after review** – the team must still read it, and Person 2 must be able to explain every point. |
+| P10 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements – preparation (read the brief) | Read the project brief and confirm understanding before tasks are given | The AI read the brief (its first file view was truncated in the middle, so it re-read the missing lines) and summarised the modules, payment states, billers, business rules and the Phase 1 and 2 deliverables. | **Accepted after check** – the summary matched the brief; the PDF copy sent afterwards had the same content. |
+| P11 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements pack – initial generation | Generate `requirements.md` and `requirements.pdf`: problem summary, stakeholders, 28 user stories with Given/When/Then, 6 NFRs, business rules, ambiguities | The AI produced a 28-story pack with 166 acceptance criteria and 31 ambiguities. Problems found: admin and regulators were marked "derived" although the brief names them (FR-6, section 2.1); five criteria put two scenarios in one line; criteria were long single lines that are hard to turn into tests; the first PDF render had wrapped ID columns. | **Fixed** – follow-up prompts P12 and P13 were used. |
+| P12 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements pack – review | Compare the AI version with another version of the requirements document supplied by the user and say which is better | The AI compared both. The other version was stronger in layout and traceability (verbatim brief requirement per story, separate Given/When/Then lines, objective and challenge IDs, stakeholder IDs, extra ambiguities); the AI version had extras of its own (actor list, hard-case table, consistency table). | **Accepted** – used to decide the next prompt. |
+| P13 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements pack – improvement | Edit the AI's own version using the strengths of the other file | The AI first started from the user's other file instead of its own version and the user corrected it. It then added per-story attribute tables, separate Given/When/Then lines, objective and challenge tables, stakeholder IDs, a billers table, a module table, 9 extra criteria and 4 extra ambiguities. Problems found: the document became much larger than the brief requires, and after a CSS change the ID columns wrapped again in the PDF (found by the AI's own render check and corrected). | **Fixed** – follow-up prompts P14 and P15 were used. |
+| P14 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements pack – scope check | Ask whether all the extra sections were required, since only the problem definition and the functional and non-functional requirements are required | The AI answered that the extras were not required, separated the core sections from the extras and offered a shorter version. | **Accepted** |
+| P15 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements pack – trimmed version | Produce the shorter version | The AI kept the problem summary, stakeholders, business rules, the 28 user stories (180 criteria), the 6 NFRs and the 12 most important ambiguities, removed the extras and regenerated the PDF. It checked the stories, priorities and Given/When/Then structure and that every identifier in the Markdown appears in the PDF. | **Accepted after review** |
+| P16 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Team meeting – open questions | Explain what the ambiguity questions are, and put them in a file for the team meeting where decisions and reasons will be written | The AI explained that the questions were found by the AI (not written by the user), that the brief already covers the main network cases (HC-1, HC-2), and created `open-questions-for-meeting.md` with the options, an AI proposal and empty decision and reason columns. | **Accepted** |
+| P17 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Repository set-up – GitHub | Recommend a good GitHub set-up for the whole project | The AI recommended a private repo with a protected `main`, a ruleset requiring pull requests and a green CI, no squash merge (to keep the test-first commit history), issues, labels and milestones, CODEOWNERS, a PR template, commit rules and a tag checklist. It searched GitHub's documentation and found that rulesets on private repos need a paid plan. | **Accepted** – the plan requirement must be checked by the person who owns the repository. |
+| P18 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Repository set-up – file layout | Ask for the division of the files between the four team members | The AI gave a directory tree with the owner of each file. It noticed that the team's prompt log has no entry or file for the use case diagram, which the brief requires. | **Accepted** |
+| P19 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Prompt log – English version | Make a prompt log in the style of the team's log with all of the conversation translated to English | The AI rebuilt this log in English from the real exchange, added the later entries, and left out two requests about a practice example log because they are not project work. | **Accepted** |
+| P20 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements pack – decisions for the ambiguities | In section 9, take the best decision for every unclear point, with the reason, and fix the section in general | The AI turned all 35 proposals into decisions with a reason and a status. It changed two earlier proposals: partial payments are not supported (AMB-10) and the agent commission is not reversed on a refund (AMB-26). Problem found by the user: the status "Decided" hid that the AI had taken the decisions, and the first replacement ("AI decision - team to confirm") still looked undecided. | **Fixed** – follow-up prompt P21 was used. |
+| P21 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements pack – final decisions | Take the best decision for every case and write it, without leaving it open | The AI made every decision final and labelled it "Decided (AI assistant)", chose Python with FastAPI for the technology stack, replaced the list of open questions with a table of key decisions, and added one rule: if the instructor's mock-biller contract differs, the mock billers and adapters follow the contract. | **Accepted** |
+| P22 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements pack – check of section 9 | Check whether section 9 of an uploaded version of the requirements pack fits what the project requires | The AI read the uploaded PDF (an older version, 1.1). It found that section 9 listed the ambiguities and why they matter, but every decision was only a proposal with the status "Open (proposed)" and no reason, so it did not meet "the decisions you made". It recommended using the newer version and reminded the author that the decisions must be reviewed and owned by the student. | **Accepted** |
+| P23 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements pack – actionable decisions | Apply all requested changes and give every ambiguity a clear, actionable decision that explains exactly how the program handles it | The AI rebuilt the requirements pack (version 1.5): a decision summary for all 35 ambiguities, a full decision record for each (decision, exact program behaviour, reason, affected modules and requirements, verifying tests, configuration), a configuration-key table, an error-code table, six new acceptance criteria and two reworded ones. Problem found: section 9 grew to about ten pages, which is more than the brief requires. | **Fixed** – follow-up prompt P24 was used. |
+| P24 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Requirements pack – size check | Ask whether there are too many decisions, and what the extra things are that the AI added | The AI agreed that there were too many and listed the extras: the long decision records, the configuration table, the error-code table, the six new criteria, and earlier additions (objectives, challenges, stakeholder IDs, billers and module tables, glossary). It proposed keeping the 35-row decision summary and full records only for the 12 most important points. This reduction has not been applied yet. | **Accepted** |
+| P25 | 2026-11-23 to 25 | Hazem Hamdy | Claude | Prompt log – merge into the team log | Add the author's prompt log to the team's log in the same format, use the author's name, and translate every Arabic prompt to English | The AI added the entries to the team's log in the same format, numbered them from P10, replaced the "Hazem Hamdy" label with the author's name, translated every Arabic message to English, added the section with the AI's questions, and checked that no Arabic text remains in the file. | **To be confirmed by Hazem Hamdy after review** |
 
-The log contains **fifteen prompt entries**: nine (P1–P9) across the five Phase 1 diagrams, recorded with ChatGPT, and six (P10–P15) for the requirements pack, recorded with Claude. Several entries (P1, P3, P5, P8, P11, P13) record an initial AI result that was wrong or needed work and was corrected through a follow-up prompt, which exceeds the brief's minimum of five entries and two improved prompts. Section 3 lists the questions the AI raised during requirements analysis.
+The log contains **twenty-five prompt entries**: nine (P1–P9) across the five Phase 1 diagrams, recorded with ChatGPT, and sixteen (P10–P25) for the requirements pack, the repository set-up and this log, recorded with Claude. It records the AI tool/mode and the responsible person for each prompt. The log includes several examples where an initial AI result was corrected through a refinement prompt (for example P1, P3, P5, P8, P11, P13, P20 and P23), exceeding the brief's minimum of five entries and two improved prompts. Section 3 lists the questions the AI raised during requirements analysis.
 
 ---
 
@@ -784,32 +794,34 @@ Do not introduce unnecessary classes, controllers, or application services.
 Do not generate an image. I need editable PlantUML source code.
 ```
 
-### P10 – Preparation: read the brief
+### P10 – Requirements: read the brief
 
-**Date:** 2026-11-23  
-**Responsible person:** Person 2  
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
 **AI tool / mode:** Claude  
-**Stage:** Preparation  
+**Stage:** Requirements – preparation (read the brief)  
 **Verdict:** Accepted after check
+
+Original message in English. Attached: the project brief (Markdown). A PDF copy of the same brief was sent in a second message with the note "this is the complete file".
 
 ```text
 hi this my project read it and i will ask you to do some tasks on it
 ```
 
-Attached: `PayLink_Year_Work_Project_-_Student_Brief (1).md`. A PDF copy of the same brief was sent in a second message with the note "this is the complete file".
-
 ### P11 – Requirements pack: initial generation
 
-**Date:** 2026-11-23  
-**Responsible person:** Person 2  
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
 **AI tool / mode:** Claude  
-**Stage:** Requirements – Problem summary, stakeholders, functional and non-functional requirements, user stories  
+**Stage:** Requirements pack – initial generation  
 **Verdict:** Fixed
 
-```text
-I am responsible for **Person 2** in our PayLink Year Work Project.
+Original message in English. The label "Hazem Hamdy" was replaced by the author's name.
 
-I want you to complete the entire Person 2 task professionally and prepare the actual project deliverables in the correct format and directory structure.
+```text
+I am responsible for **Hazem Hamdy** in our PayLink Year Work Project.
+
+I want you to complete the entire Hazem Hamdy task professionally and prepare the actual project deliverables in the correct format and directory structure.
 
 ## 1. First, Understand the Project
 
@@ -821,7 +833,7 @@ Use this PDF as the primary source of truth. Do not invent requirements or chang
 
 Also, inspect the existing project repository and its directory structure before making any changes. Follow the project's existing conventions and coordinate with the work already done by other team members.
 
-## 2. My Responsibilities (Person 2)
+## 2. My Responsibilities (Hazem Hamdy)
 
 I am responsible for the following Phase 1 deliverables:
 
@@ -965,104 +977,238 @@ When finished, provide:
 
 **Important:** Do not just tell me how to create these documents. Actually create the files in the project workspace and make them ready for review and submission.
 
-(The message also repeated the Phase 1 submission requirements from the brief and the proposed task distribution: Person 1 – GitHub, Docker and GitHub Actions; Person 2 – problem summary, stakeholders, functional and non-functional requirements, user stories; Person 3 – domain class diagram and sequence diagrams; Person 4 – use case diagram, state diagram and ERD.)
+(The message also repeated the Phase 1 submission requirements from the brief and the proposed task distribution: Person 1 – GitHub, Docker and GitHub Actions; Hazem Hamdy – problem summary, stakeholders, functional and non-functional requirements, user stories; Person 3 – domain class diagram and sequence diagrams; Person 4 – use case diagram, state diagram and ERD.)
 
 ```
 
 ### P12 – Requirements pack: comparison with another version
 
-**Date:** 2026-11-23  
-**Responsible person:** Person 2  
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
 **AI tool / mode:** Claude  
-**Stage:** Requirements – review  
+**Stage:** Requirements pack – review  
 **Verdict:** Accepted
 
-Original message (Egyptian Arabic) with the attached file `requirements (2).pdf`:
+Original message in Egyptian Arabic, translated to English: (with another version of the requirements document attached)
 
 ```text
-تب انهي احسن ده ولا بتاعك
+OK, which is better, this one or yours?
 ```
-
-English meaning: "OK, which is better, this one or yours?"
 
 ### P13 – Requirements pack: improve the AI version using the other file
 
-**Date:** 2026-11-23  
-**Responsible person:** Person 2  
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
 **AI tool / mode:** Claude  
-**Stage:** Requirements – improvement  
+**Stage:** Requirements pack – improvement  
 **Verdict:** Fixed
 
-Original messages (Egyptian Arabic). The first one was sent after the AI offered to merge the two versions. The AI then started rebuilding from the user's other file instead of its own version, so the second message corrected the direction:
+Original message in Egyptian Arabic, translated to English: Message 1 was sent after the AI offered to merge the two versions; the AI then started from the user's other file, so message 2 corrected the direction.
 
 ```text
-تب اعملي انت الكلام ده
-```
+Message 1: OK, you do this for me.
 
-```text
-لا عدل على النسخه بتعاتك انت من الملف التاني اللي انا باعتهولك
+Message 2: No, edit your own version, using the other file that I am sending you.
 ```
-
-English meaning: "Then you do it" and "No, edit your own version using the other file I sent you."
 
 ### P14 – Requirements pack: scope check
 
-**Date:** 2026-11-23  
-**Responsible person:** Person 2  
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
 **AI tool / mode:** Claude  
-**Stage:** Requirements – scope  
+**Stage:** Requirements pack – scope check  
 **Verdict:** Accepted
 
+Original message in Egyptian Arabic, translated to English:
+
 ```text
-انت عامل حاجات كتير هل كل الحاجات اللي انت عاملها دي مطلوبة ولا ايه اصل ده بس اللي مطلوب
-problem definition and fun and non (all requirements
+You did a lot of things. Is everything you did required? Because this is all that is required:
+problem definition and functional and non-functional (all requirements
 ```
 
-English meaning: "You did a lot of things. Is everything you did required? Because this is all that is required: problem definition and functional and non-functional (all requirements)."
+### P15 – Requirements pack: trimmed version
 
-### P15 – Requirements pack: trimmed final version
-
-**Date:** 2026-11-23  
-**Responsible person:** Person 2  
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
 **AI tool / mode:** Claude  
-**Stage:** Requirements – final version  
+**Stage:** Requirements pack – trimmed version  
 **Verdict:** Accepted after review
 
+Original message in Egyptian Arabic, translated to English: (reply to the AI's offer to make a shorter version with only the required sections)
+
 ```text
-اعمل
+Do it.
 ```
 
-English meaning: "Do it" (in reply to the AI's offer to make a shorter version with only the required sections).
+### P16 – Team meeting: open questions
+
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
+**AI tool / mode:** Claude  
+**Stage:** Team meeting – open questions  
+**Verdict:** Accepted
+
+Original message in Egyptian Arabic, translated to English:
+
+```text
+What are these? Did I make them?
+In the part whose name I don't remember, it is an md file that you produce when you see things that are not mentioned.
+For example, if a network issue happens, what will you do?
+So this is a question that you would put in a file. All of us will meet tomorrow to look at these things, take a decision on them and explain the reason.
+```
+
+### P17 – Repository set-up: GitHub
+
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
+**AI tool / mode:** Claude  
+**Stage:** Repository set-up – GitHub  
+**Verdict:** Accepted
+
+Original message in Egyptian Arabic, translated to English:
+
+```text
+OK, recommend a good set-up for the whole project on GitHub.
+```
+
+### P18 – Repository set-up: file layout
+
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
+**AI tool / mode:** Claude  
+**Stage:** Repository set-up – file layout  
+**Verdict:** Accepted
+
+Original message in Egyptian Arabic, translated to English:
+
+```text
+The file split, mate? (How should the files be divided between us?)
+```
+
+### P19 – Prompt log: English version
+
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
+**AI tool / mode:** Claude  
+**Stage:** Prompt log – English version  
+**Verdict:** Accepted
+
+Original message in Egyptian Arabic, translated to English: (the team's prompt log was attached as the style example)
+
+```text
+OK, make a prompt log in the same style as this one, and convert the whole conversation to English, meaning anything I said in Arabic, convert it to English.
+```
+
+### P20 – Requirements pack: decisions for the ambiguities
+
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
+**AI tool / mode:** Claude  
+**Stage:** Requirements pack – decisions for the ambiguities  
+**Verdict:** Fixed
+
+Original message in Egyptian Arabic, translated to English: (the full requirements pack was attached)
+
+```text
+In the section "9. Ambiguities, Assumptions and Decisions": take the best decision for every problem, because it is required.
+Also the questions the AI asked, or things that were not understood, and the decision we took: you take the best decision, fix this part in general, and send me the file after the edit.
+```
+
+### P21 – Requirements pack: final decisions
+
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
+**AI tool / mode:** Claude  
+**Stage:** Requirements pack – final decisions  
+**Verdict:** Accepted
+
+Original message in Egyptian Arabic, translated to English:
+
+```text
+Dude, you take the best decision for every case and write it.
+```
+
+### P22 – Requirements pack: check of section 9
+
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
+**AI tool / mode:** Claude  
+**Stage:** Requirements pack – check of section 9  
+**Verdict:** Accepted
+
+Original message in Egyptian Arabic, translated to English: (the uploaded requirements PDF was attached)
+
+```text
+Does the part "9. Ambiguities, Assumptions and Decisions" in this file fit what is required in the project, which is this one, and does it meet the requirement? "a list of questions the AI asked or ambiguities you found, and the decisions you made"
+```
+
+### P23 – Requirements pack: actionable decisions
+
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
+**AI tool / mode:** Claude  
+**Stage:** Requirements pack – actionable decisions  
+**Verdict:** Fixed
+
+Original message in English.
+
+```text
+Please apply all the requested changes to the file and send me the updated solution file only, not the entire project.
+For each AMB case, make the best decision yourself and write a clear, actionable decision explaining exactly how the program will handle it. Do not simply write "Decided." Make any additional changes needed, such as adding columns or fields, to ensure the file is complete, consistent, and professionally formatted.
+```
+
+### P24 – Requirements pack: size check
+
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
+**AI tool / mode:** Claude  
+**Stage:** Requirements pack – size check  
+**Verdict:** Accepted
+
+Original message in Egyptian Arabic, translated to English:
+
+```text
+OK, don't you think there are a bit too many of them, or is it fine like this? And what are these extra things that you added?
+```
+
+### P25 – Prompt log: merge into the team log
+
+**Date:** 2026-11-23 to 2026-11-25  
+**Responsible person:** Hazem Hamdy  
+**AI tool / mode:** Claude  
+**Stage:** Prompt log – merge into the team log  
+**Verdict:** To be confirmed by Hazem Hamdy after review
+
+Original message in Egyptian Arabic, translated to English: (the team's prompt log was attached)
+
+```text
+OK, add my prompt log to this file and continue it in the same format. Replace Hazem Hamdy with my name, which is Hazem Hamdy. Convert every prompt that I gave you in Arabic to English, all of them, after adding them to the file of course. Do not leave anything in Arabic, and send me the prompt-log.md file after the modification.
+```
 
 ---
 
 ## 3. Questions raised by the AI during requirements analysis
 
-While writing the requirements pack (P11 to P15) the AI found points where the brief is silent or can be read in more than one way. The final `docs/requirements.md` keeps the 12 most important ones (section 7, AMB-01 to AMB-12) with a proposed decision. **All of them are working assumptions that are still open** until the instructor or the team confirms them.
+While writing the requirements pack the AI found points where the brief is silent or can be read in more than one way. The full `docs/requirements.md` records 35 of them in section 9 (AMB-01 to AMB-35). The 12 most important are listed here. The decisions were taken by the AI assistant at the author's request; they are not official requirements of the brief, and the author reviews them and updates the requirements pack if the team or the instructor decides differently.
 
-| ID | Question raised by the AI | Proposed decision (open) |
+| ID | Question raised by the AI | Decision (taken by the AI assistant) |
 | --- | --- | --- |
-| AMB-01 | What does "per day" mean for the daily limit (calendar day or rolling 24 hours, and which time zone)? | Calendar day in Africa/Cairo, timestamps stored in UTC |
-| AMB-02 | Do the single-payment and daily limits apply to the bill amount or to the total with the fee, and which payments count? | Bill amount without the fee; Rejected, Failed and Refunded payments do not count |
-| AMB-03 | How do users register and log in, and which roles exist? | Unique phone number and password, token authentication, four roles |
-| AMB-04 | When an agent pays for a customer, whose wallet is charged and whose limits apply? | The customer's wallet and limits; the agent only receives the commission |
-| AMB-05 | What is the scope and lifetime of the idempotency key, and what happens with the same key and different data? | Unique per customer, kept at least 24 hours, conflicting reuse is rejected |
-| AMB-06 | What counts as a payment for the velocity rule, is the window sliding, and is the sixth payment itself rejected? | Sliding window, new attempts count, the sixth is rejected and the block starts |
-| AMB-07 | Which rounding mode applies to the 1.5% fee and the 40% commission? | Two decimals, round half up |
-| AMB-08 | How do promotion dates work (inclusive, one at a time) and what is the commission when the fee is 0? | Inclusive dates, one promotion at a time, commission 0.00 |
-| AMB-09 | How long do we wait for the TopUpNet callback after "accepted"? | Stay in SentToBiller, then Unknown after a configurable waiting time |
-| AMB-10 | From when are the re-queries at 1, 5 and 15 minutes counted, and does every biller offer a status query? | From the moment the payment became Unknown; mock billers offer a status query |
-| AMB-11 | What is the settlement file format, and which differences may change a payment's state? | Daily CSV per biller; only the two rules of the brief change state, others are flagged |
-| AMB-12 | FR-27 allows refunding a Completed payment, but Completed is final in the life cycle. How do they fit together? | A separate refund record; the payment stays Completed; confirm with the instructor |
+| AMB-01 | What does "per day" mean for the daily limit? | Calendar day in Africa/Cairo, timestamps stored in UTC |
+| AMB-02 | Do the limits apply to the bill amount or to the total with the fee, and which payments count? | Bill amount without the fee; Unknown payments count, Rejected, Failed and Refunded do not |
+| AMB-03 | How do users register and log in, and which roles exist? | Mobile number and password, token authentication, four roles |
+| AMB-06 | When an agent pays for a customer, whose wallet and limits apply? | The customer's wallet and limits; the agent only receives the commission |
+| AMB-07 | How does the idempotency key work (scope, lifetime, same key with different data)? | Unique per account, kept 24 hours, conflicting reuse is rejected |
+| AMB-08 | What counts as a payment for the velocity rule, and is the sixth payment rejected? | Sliding window, new attempts count, the sixth is rejected and the block starts |
+| AMB-12 | Which rounding applies to the 1.5% fee and the 40% commission? | Two decimals, round half up |
+| AMB-14 | How do promotion dates work and what is the commission when the fee is 0? | Inclusive whole days, one promotion at a time, commission 0.00 |
+| AMB-16 | How long do we wait for the TopUpNet callback after "accepted"? | Stay in SentToBiller, then Unknown after a configurable 30 minutes |
+| AMB-17 | From when are the re-queries counted, and do the mock billers offer a status query? | From the moment the payment became Unknown; the mock billers offer a status query |
+| AMB-25 | Which reconciliation differences may change a payment's state? | Only the two Unknown outcomes of the brief; all others are flagged |
+| AMB-26 | FR-27 refunds a Completed payment, but Completed is final in the life cycle. | A separate refund record; the payment stays Completed; the agent commission is not reversed |
 
 ---
 
-## 4. Final files
-
-The requirements files prepared for the team are:
-
-- `docs/requirements.md` — Person 2
-- `docs/requirements.pdf` — Person 2
+## 4. Final design files
 
 The editable PlantUML design files prepared for the team are:
 
@@ -1072,4 +1218,10 @@ The editable PlantUML design files prepared for the team are:
 - `PayLink_Payment_State_Diagram_Phase1.puml` —Youssef Mahmoud
 - `PayLink_Relational_Database_ERD_Phase1.puml` — Youssef Mahmoud
 
-**Review status:** The state diagram follows the specified payment lifecycle. The ERD has 15 core tables and includes primary keys, foreign keys, uniqueness and business-constraint notes. The ERD intentionally defers settlement/reconciliation tables (SettlementFile, SettlementRecord, ReconciliationReport and ReconciliationDifference); add them if the team implements FR-26. All five source files should still be rendered and visually inspected before submission.
+The requirements files prepared by Hazem Hamdy are:
+
+- `docs/requirements.md` — Hazem Hamdy (requirements pack, source)
+- `docs/requirements.pdf` — Hazem Hamdy (requirements pack, PDF)
+- `docs/open-questions-for-meeting.md` — Hazem Hamdy (questions for the team meeting; not a submission file)
+
+**Review status:** The state diagram follows the specified payment lifecycle. The ERD has 15 core tables and includes primary keys, foreign keys, uniqueness and business-constraint notes. The ERD intentionally defers settlement/reconciliation tables (SettlementFile, SettlementRecord, ReconciliationReport and ReconciliationDifference); add them if the team implements FR-26. All five source files should still be rendered and visually inspected before submission. The Hazem Hamdy entries (P10–P25) must be reviewed by the author, who must be able to explain every AI-generated item. Two requests about a practice example of a prompt log are not project work and are not logged here.
